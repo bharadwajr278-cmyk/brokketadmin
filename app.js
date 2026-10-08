@@ -1,4 +1,4 @@
-const API = '/api/ceo-dashboard';
+const API = '/api/proxy';
 const state = { data: null, live: false, groupBy: 'day' };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const qs = s => document.querySelector(s);
@@ -18,7 +18,9 @@ function params(extra = {}) {
   return p;
 }
 async function api(path, extra = {}) {
-  const response = await fetch(`${API}${path}?${params(extra)}`, {
+  const query = params(extra);
+  query.set('route', path.replace(/^\/+/, ''));
+  const response = await fetch(`${API}?${query}`, {
     signal: AbortSignal.timeout(15000),
     cache: 'no-store'
   });
