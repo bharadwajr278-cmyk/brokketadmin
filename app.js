@@ -25,8 +25,37 @@ async function api(path, extra = {}) {
     cache: 'no-store'
   });
   const body = await response.json().catch(() => null);
+  if (response.status === 401) {
+    lockDashboard('Your session expired. Please sign in again.');
+  }
   if (!response.ok || !body?.success) throw new Error(body?.message || `API request failed (${response.status})`);
   return body.data;
+}
+
+function unlockDashboard() {
+  document.body.classList.remove('auth-pending');
+  document.body.classList.add('authenticated');
+  qs('#loginError').textContent = '';
+}
+
+function lockDashboard(message = '') {
+  document.body.classList.remove('authenticated');
+  document.body.classList.add('auth-pending');
+  qs('#loginError').textContent = message;
+  qs('#loginPassword').value = '';
+  window.setTimeout(() => qs('#loginNumber').focus(), 50);
+}
+
+async function startDashboard() {
+  const response = await fetch('/api/auth', { cache: 'no-store' });
+  const session = await response.json().catch(() => ({}));
+  if (!session.authenticated) {
+    lockDashboard();
+    return;
+  }
+  unlockDashboard();
+  await loadCities().catch(() => {});
+  await refresh();
 }
 async function loadCities() {
   const cities = await api('/filters/cities');
@@ -140,4 +169,32 @@ qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));
 document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));a.classList.add('active');qs('.sidebar').classList.remove('open')}));
-loadCities().catch(()=>{}).finally(refresh);
+qs('#loginForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = 'Signing in…';
+  qs('#loginError').textContent = '';
+  try {
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: qs('#loginNumber').value, password: qs('#loginPassword').value })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.message || 'Unable to sign in.');
+    unlockDashboard();
+    await loadCities().catch(() => {});
+    await refresh();
+  } catch (error) {
+    qs('#loginError').textContent = error.message;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = 'Sign in';
+  }
+});
+qs('#logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/auth', { method: 'DELETE' }).catch(() => {});
+  lockDashboard('You have signed out.');
+});
+startDashboard().catch(() => lockDashboard('Unable to verify your session. Please sign in.'));

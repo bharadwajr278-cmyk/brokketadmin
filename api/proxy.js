@@ -1,7 +1,14 @@
+const { isAuthenticated } = require('../lib/auth');
+
 module.exports = async function handler(request, response) {
   if (request.method !== 'GET') {
     response.setHeader('Allow', 'GET');
     return response.status(405).json({ success: false, message: 'Method not allowed' });
+  }
+
+  if (!isAuthenticated(request)) {
+    response.setHeader('Cache-Control', 'no-store');
+    return response.status(401).json({ success: false, message: 'Authentication required.' });
   }
 
   const backend = process.env.BROKKET_API_BASE_URL;

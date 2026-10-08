@@ -17,6 +17,155 @@
 * {
   box-sizing: border-box;
 }
+
+body.auth-pending {
+  overflow: hidden;
+}
+
+body.auth-pending .app-shell {
+  visibility: hidden;
+}
+
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(201, 255, 74, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 82%, rgba(100, 168, 255, 0.14), transparent 32%),
+    #071613;
+}
+
+body.authenticated .login-screen {
+  display: none;
+}
+
+.login-card {
+  width: min(100%, 430px);
+  padding: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 34px;
+  color: #0b1917;
+}
+
+.login-brand .brand-name {
+  font-size: 26px;
+}
+
+.login-card h1 {
+  margin: 8px 0 8px;
+  font: 800 30px/1.15 "Manrope", sans-serif;
+  letter-spacing: -0.04em;
+  color: #0b1917;
+}
+
+.login-copy {
+  margin: 0 0 26px;
+  color: #687771;
+  font-size: 14px;
+}
+
+.login-card form,
+.login-card label {
+  display: grid;
+  gap: 9px;
+}
+
+.login-card form {
+  gap: 18px;
+}
+
+.login-card label span {
+  color: #263632;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.login-card input {
+  width: 100%;
+  height: 52px;
+  padding: 0 15px;
+  border: 1px solid #dce4e0;
+  border-radius: 12px;
+  outline: none;
+  background: #f8faf8;
+  color: #0b1917;
+  font: 600 15px "DM Sans", sans-serif;
+}
+
+.login-card input:focus {
+  border-color: #86b927;
+  box-shadow: 0 0 0 4px rgba(168, 223, 45, 0.16);
+}
+
+.login-error {
+  min-height: 18px;
+  margin: -4px 0 -4px;
+  color: #b43e38;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login-submit {
+  height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: #0b1917;
+  color: #fff;
+  cursor: pointer;
+  font: 700 14px "DM Sans", sans-serif;
+}
+
+.login-submit:hover {
+  background: #172d28;
+}
+
+.login-submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.login-security {
+  margin: 22px 0 0;
+  color: #83908b;
+  font-size: 11px;
+  text-align: center;
+}
+
+.logout-btn {
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.logout-btn:hover {
+  border-color: #c9ff4a;
+  color: #c9ff4a;
+}
+
+@media (max-width: 520px) {
+  .login-card {
+    padding: 28px 22px;
+  }
+}
 html {
   scroll-behavior: smooth;
 }
