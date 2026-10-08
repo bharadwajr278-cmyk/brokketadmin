@@ -76,7 +76,7 @@ function renderContributors(items = []) {
   }).join('') : '<li>No contributors in this range</li>';
 }
 function renderCities(items = []) {
-  qs('#cityRows').innerHTML = items.length ? items.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i>${x.name}</span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
+  qs('#cityRows').innerHTML = items.length ? items.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i><span class="city-label">${x.name}</span></span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
 }
 function render() {
   const d=state.data,o=d.overview;
