@@ -21,3 +21,7 @@ BROKKET_API_KEY=<optional API key>
 The frontend only calls the same-origin `/api/ceo-dashboard/*` route. The Node server reads the private backend URL and optional credentials from its environment and proxies requests without exposing them to browser code. This also avoids browser CORS restrictions.
 
 Deploy this application on an HTTP-capable Node.js host, set `BROKKET_API_BASE_URL`, and run `npm start`.
+
+## Vercel
+
+Import this GitHub repository into Vercel and configure `BROKKET_API_BASE_URL` under Project Settings → Environment Variables. The `api/ceo-dashboard/[...path].js` serverless function keeps the backend URL and optional credentials out of the browser bundle.
