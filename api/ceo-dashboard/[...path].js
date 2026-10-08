@@ -13,7 +13,11 @@ module.exports = async function handler(request, response) {
   }
 
   const { path: pathValue, ...query } = request.query;
-  const pathParts = Array.isArray(pathValue) ? pathValue : [pathValue].filter(Boolean);
+  const requestUrl = new URL(request.url, `https://${request.headers.host || 'localhost'}`);
+  const routePath = requestUrl.pathname.replace(/^\/api\/ceo-dashboard\/?/, '');
+  const pathParts = pathValue
+    ? (Array.isArray(pathValue) ? pathValue : [pathValue])
+    : routePath.split('/').filter(Boolean).map(decodeURIComponent);
   if (!pathParts.length || pathParts.some((part) => part.includes('..'))) {
     return response.status(400).json({ success: false, message: 'Invalid API path' });
   }
