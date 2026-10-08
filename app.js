@@ -1,5 +1,5 @@
 const API = '/api/proxy';
-const state = { data: null, live: false, groupBy: 'day' };
+const state = { data: null, live: false, groupBy: 'day', cityNames: {} };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const qs = s => document.querySelector(s);
 
@@ -59,11 +59,40 @@ async function startDashboard() {
 }
 async function loadCities() {
   const cities = await api('/filters/cities');
+  state.cityNames = Object.fromEntries(cities.map(city => [normalizeCityCode(city.cityCode), city.cityName.trim()]));
   const select = qs('#citySelect');
   const selected = select.value;
   select.innerHTML = '<option value="">All cities</option>' +
     cities.map(c => `<option value="${c.cityCode}">${c.cityName}</option>`).join('');
   select.value = selected;
+}
+
+function normalizeCityCode(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function cleanCityName(value, code) {
+  const canonical = state.cityNames[code];
+  if (canonical) return canonical;
+  const name = String(value || '').trim();
+  if (name && !/^unknown$/i.test(name) && !/^null$/i.test(name)) return name;
+  return code.split('_').map(part => part ? part[0].toUpperCase() + part.slice(1) : '').join(' ');
+}
+
+function groupCityRows(rows = []) {
+  const grouped = {};
+  let excluded = 0;
+  for (const row of rows) {
+    const code = normalizeCityCode(row.cityCode);
+    const count = Number(row.count) || 0;
+    if (!code || ['unknown', 'unk', 'null', 'other'].includes(code)) {
+      excluded += count;
+      continue;
+    }
+    if (!grouped[code]) grouped[code] = { code, name: cleanCityName(row.cityName, code), count: 0 };
+    grouped[code].count += count;
+  }
+  return { grouped, excluded };
 }
 function chart(svgId, a = [], b = null, compact = false) {
   const svg = qs(svgId), h = compact ? 180 : 260, w = 760, p = 30;
@@ -106,6 +135,16 @@ function renderContributors(items = []) {
 }
 function renderCities(items = []) {
   qs('#cityRows').innerHTML = items.length ? items.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i><span class="city-label">${x.name}</span></span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
+  const excluded = state.data?.excludedCities;
+  const parts = excluded ? [
+    excluded.users ? `${fmt(excluded.users)} users` : '',
+    excluded.logins ? `${fmt(excluded.logins)} logins` : '',
+    excluded.listings ? `${fmt(excluded.listings)} listings` : '',
+    excluded.likes ? `${fmt(excluded.likes)} likes` : ''
+  ].filter(Boolean) : [];
+  qs('#geoDataNote').textContent = parts.length
+    ? `Data quality note: ${parts.join(', ')} without a valid city are excluded from this comparison.`
+    : 'All records in this comparison have valid city information.';
 }
 function render() {
   const d=state.data,o=d.overview;
@@ -133,10 +172,12 @@ async function refresh() {
     const [overview,userOverview,reg,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities] = await Promise.all([
       api('/overview'),api('/users/overview'),api('/users/registrations-trend',{groupBy:state.groupBy}),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city')
     ]);
-    const map=arr=>Object.fromEntries(arr.map(x=>[x.cityCode||'UNK',x])), uc=map(userCities), lc=map(loginCities), sc=map(listingCities), kc=map(likeCities);
+    const usersByCity=groupCityRows(userCities), loginsByCity=groupCityRows(loginCities), listingsByCity=groupCityRows(listingCities), likesByCity=groupCityRows(likeCities);
+    const uc=usersByCity.grouped, lc=loginsByCity.grouped, sc=listingsByCity.grouped, kc=likesByCity.grouped;
     const codes=[...new Set([...Object.keys(uc),...Object.keys(lc),...Object.keys(sc),...Object.keys(kc)])];
-    const maxima={users:Math.max(1,...userCities.map(x=>x.count)),logins:Math.max(1,...loginCities.map(x=>x.count)),listings:Math.max(1,...listingCities.map(x=>x.count)),likes:Math.max(1,...likeCities.map(x=>x.count))};
-    state.data={overview,registrations:reg.map(x=>x.count),logins:logins.map(x=>x.count),likes:likes.map(x=>x.count),listings:listings.map(x=>x.count),listingOverview,contributors,cities:codes.slice(0,10).map(code=>{const row={code,name:(uc[code]||lc[code]||sc[code]||kc[code]).cityName||code,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));return row})};
+    const maxima={users:Math.max(1,...Object.values(uc).map(x=>x.count)),logins:Math.max(1,...Object.values(lc).map(x=>x.count)),listings:Math.max(1,...Object.values(sc).map(x=>x.count)),likes:Math.max(1,...Object.values(kc).map(x=>x.count))};
+    const cityRows=codes.map(code=>{const source=uc[code]||lc[code]||sc[code]||kc[code];const row={code,name:source.name,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));row.volume=row.users+row.logins+row.listings+row.likes;return row}).sort((a,b)=>b.volume-a.volume).slice(0,10);
+    state.data={overview,registrations:reg.map(x=>x.count),logins:logins.map(x=>x.count),likes:likes.map(x=>x.count),listings:listings.map(x=>x.count),listingOverview,contributors,cities:cityRows,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
     qs('#growthRate').textContent=`${userOverview.growthRatePercent>=0?'+':''}${userOverview.growthRatePercent}%`;
     qs('#successRate').textContent=`${loginOverview.successRatePercent}%`;
     render();

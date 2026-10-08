@@ -960,6 +960,14 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.geo-data-note {
+  margin: 0;
+  padding: 14px 10px 2px;
+  color: #7b8984;
+  font-size: 11px;
+  line-height: 1.5;
+}
 .momentum {
   display: flex;
   align-items: center;
