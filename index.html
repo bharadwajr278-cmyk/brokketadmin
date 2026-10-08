@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Brokket executive dashboard for growth, engagement, property supply and demand." />
+  <title>Brokket — CEO Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Dashboard navigation">
+      <div class="brand"><span class="brand-mark">B</span><span class="brand-name">brokket</span></div>
+      <nav>
+        <a class="nav-item active" href="#overview" aria-current="page"><span>⌁</span> Overview</a>
+        <a class="nav-item" href="#growth"><span>↗</span> Growth</a>
+        <a class="nav-item" href="#supply"><span>▱</span> Supply</a>
+        <a class="nav-item" href="#demand"><span>♡</span> Demand</a>
+        <a class="nav-item" href="#geography"><span>⌖</span> Geography</a>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="status-dot"></span>
+        <div><strong>Data service</strong><small id="serviceState">Connecting…</small></div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="mobile-menu" aria-label="Open navigation">☰</button>
+        <div>
+          <p class="eyebrow">EXECUTIVE INTELLIGENCE</p>
+          <h1>Good morning, Kamesh.</h1>
+        </div>
+        <div class="header-actions">
+          <label class="filter-control date-control">
+            <span>Period</span>
+            <select id="periodSelect" aria-label="Date range">
+              <option value="30">Last 30 days</option>
+              <option value="7">Last 7 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="365">Last 12 months</option>
+            </select>
+          </label>
+          <label class="filter-control">
+            <span>Market</span>
+            <select id="citySelect" aria-label="City">
+              <option value="">All cities</option>
+            </select>
+          </label>
+          <button class="refresh-btn" id="refreshBtn" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="insight-banner" aria-label="Executive summary">
+          <div class="pulse-icon"><span></span></div>
+          <div><p class="eyebrow">THIS PERIOD</p><p id="executiveInsight">Acquisition is outpacing listing growth. Activation remains the clearest opportunity.</p></div>
+          <span class="live-chip" id="dataMode">CONNECTING</span>
+        </section>
+
+        <section id="overview" class="metric-grid" aria-label="Headline metrics">
+          <article class="metric-card featured"><div class="metric-icon">◎</div><div class="metric-label">Total users</div><div class="metric-value" id="totalUsers">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
+          <article class="metric-card"><div class="metric-icon">+</div><div class="metric-label">New users</div><div class="metric-value" id="newUsers">—</div><div class="metric-foot"><span>Live metric</span><span>in range</span></div></article>
+          <article class="metric-card"><div class="metric-icon">◉</div><div class="metric-label">Active users</div><div class="metric-value" id="activeUsers">—</div><div class="metric-foot"><span>Live metric</span><span>in range</span></div></article>
+          <article class="metric-card"><div class="metric-icon">⌂</div><div class="metric-label">Active listings</div><div class="metric-value" id="activeListings">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
+          <article class="metric-card"><div class="metric-icon">▤</div><div class="metric-label">New listings</div><div class="metric-value" id="newListings">—</div><div class="metric-foot"><span>Live metric</span><span>this period</span></div></article>
+          <article class="metric-card"><div class="metric-icon">♡</div><div class="metric-label">Deal-card likes</div><div class="metric-value" id="newLikes">—</div><div class="metric-foot"><span>Live metric</span><span>tracked demand</span></div></article>
+        </section>
+
+        <section id="growth" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">01 · GROWTH & RETENTION</p><h2>Audience momentum</h2></div><div class="legend"><span><i class="lime"></i> Registrations</span><span><i class="blue"></i> Logins</span></div></div>
+          <div class="growth-layout">
+            <article class="panel chart-panel">
+              <div class="panel-head"><div><h3>Acquisition vs. engagement</h3><p>Daily registrations and successful logins</p></div><div class="segmented" role="group" aria-label="Chart grouping"><button class="active" data-group="day">Day</button><button data-group="month">Month</button></div></div>
+              <div class="chart-wrap"><svg id="trendChart" viewBox="0 0 760 260" role="img" aria-label="Registrations and logins trend"></svg></div>
+            </article>
+            <div class="score-stack">
+              <article class="score-card dark"><div><p class="eyebrow">USER GROWTH</p><strong id="growthRate">—</strong><p>Net growth this period</p></div><svg class="mini-ring" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30"/><circle class="ring-progress" cx="40" cy="40" r="30" stroke-dasharray="128 188"/></svg></article>
+              <article class="score-card"><div><p class="eyebrow">LOGIN SUCCESS</p><strong id="successRate">—</strong><p><span id="uniqueUsers">—</span> unique active users</p></div><div class="gauge"><span style="--score:0"></span></div></article>
+            </div>
+          </div>
+        </section>
+
+        <section id="supply" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">02 · SUPPLY</p><h2>Marketplace inventory</h2></div><p class="section-note">New active listings by transaction type</p></div>
+          <div class="supply-layout">
+            <article class="panel mix-panel">
+              <div class="panel-head"><div><h3>Supply mix</h3><p><strong id="mixTotal">—</strong> listings added</p></div></div>
+              <div class="donut-row"><div class="donut" id="supplyDonut"><div><strong>55%</strong><span>Sale</span></div></div><div class="mix-legend" id="mixLegend"></div></div>
+            </article>
+            <article class="panel supply-trend-panel">
+              <div class="panel-head"><div><h3>Listing velocity</h3><p>New listings by day</p></div><select id="typeSelect" aria-label="Transaction type"><option value="">All types</option><option>Sale</option><option>Rent</option><option>Mandate</option><option>Requirement</option></select></div>
+              <div class="bar-spark" id="listingBars" aria-label="Listing trend"></div>
+            </article>
+            <article class="panel leaderboard-panel">
+              <div class="panel-head"><div><h3>Top contributors</h3><p>Highest listing volume</p></div><span class="rank-badge">TOP 5</span></div>
+              <ol class="leaderboard" id="leaderboard"></ol>
+            </article>
+          </div>
+        </section>
+
+        <section id="demand" class="section-block demand-block">
+          <div class="section-heading"><div><p class="eyebrow">03 · DEMAND</p><h2>Deal-card engagement</h2></div><button class="info-btn" id="scopeInfo" aria-expanded="false">i <span>Measures likes on Mandate and Requirement listings. Sale and Rent likes are lifetime counters and are excluded from date-ranged reporting.</span></button></div>
+          <div class="demand-layout">
+            <article class="demand-hero"><div><p>Tracked likes</p><strong id="demandLikes">—</strong><span>Live from Brokket</span></div><div class="demand-orbit"><span>♡</span></div></article>
+            <article class="panel demand-chart"><div class="panel-head"><div><h3>Engagement pulse</h3><p>Daily intent signals</p></div><span class="metric-annotation"><b>1.76</b> likes / new listing</span></div><div class="chart-wrap compact"><svg id="likesChart" viewBox="0 0 760 180" role="img" aria-label="Likes trend"></svg></div></article>
+          </div>
+        </section>
+
+        <section id="geography" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">04 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Full-funnel comparison by city</p></div>
+          <article class="panel geography-panel">
+            <div class="city-table" role="table" aria-label="City performance">
+              <div class="city-row city-head" role="row"><span>Market</span><span>New users</span><span>Logins</span><span>Listings</span><span>Deal-card likes</span><span>Momentum</span></div>
+              <div id="cityRows"></div>
+            </div>
+          </article>
+        </section>
+
+        <footer><span>Brokket internal analytics</span><span id="lastUpdated">Updated just now · Asia/Kolkata</span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

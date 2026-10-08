@@ -1,0 +1,12 @@
+{
+  "name": "brokketadmin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Brokket CEO dashboard backed by the live CEO dashboard API.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
