@@ -515,14 +515,17 @@ function renderCities(items = []) {
 }
 function render() {
   const d=state.data,o=d.overview;
-  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',d.uniqueActiveUsers],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',o.newLikesInRange],['#demandLikes',o.newLikesInRange],['#uniqueUsers',d.uniqueActiveUsers]].forEach(([id,v]) => qs(id).textContent=fmt(v));
+  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',d.uniqueActiveUsers],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',d.trackedLikesInRange],['#demandLikes',d.trackedLikesInRange],['#uniqueUsers',d.uniqueActiveUsers]].forEach(([id,v]) => qs(id).textContent=fmt(v));
   qs('#registrationCount').textContent=fmt(d.registrations.reduce((total,point)=>total+(Number(point.count)||0),0));
   qs('#loginCount').textContent=fmt(d.logins.reduce((total,point)=>total+(Number(point.count)||0),0));
   chart('#trendChart',d.registrations,d.logins);
   chart('#likesChart',d.likes,null,true);
   renderBars(d.listings);
   renderMix(d.listingOverview.byTransactionType, o.newListingsInRange);
-  qs('#likesPerListing').textContent = Number(o.newListingsInRange) ? (Number(o.newLikesInRange) / Number(o.newListingsInRange)).toFixed(2) : 'N/A';
+  qs('#likesPerListing').textContent = Number(d.trackedListingsInRange)
+    ? (Number(d.trackedLikesInRange) / Number(d.trackedListingsInRange)).toFixed(2)
+    : 'N/A';
+  qs('#likesScopeNote').textContent = d.likesScopeNote;
   renderContributors(d.contributors);
   renderCities(d.cities);
 }
@@ -555,7 +558,8 @@ async function refresh() {
     if (unclassified) reliableMix.Unclassified=unclassified;
     listingOverview.byTransactionType=reliableMix;
     const cityTotals={users:userCities.reduce((t,x)=>t+(Number(x.count)||0),0),logins:loginCities.reduce((t,x)=>t+(Number(x.count)||0),0),listings:listingCities.reduce((t,x)=>t+(Number(x.count)||0),0),likes:likeCities.reduce((t,x)=>t+(Number(x.count)||0),0)};
-    state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
+    const trackedListingsInRange = reliableMix.Mandate + reliableMix.Requirement;
+    state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,trackedListingsInRange,trackedLikesInRange:Number(likeOverview.totalLikesInRange)||0,likesScopeNote:likeOverview.scopeNote||'Covers date-ranged likes on Mandate and Requirement listings only.',contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
     const growthRate=userOverview.growthRatePercent, successRate=loginOverview.successRatePercent;
     qs('#growthRate').textContent=growthRate == null ? 'N/A' : `${Number(growthRate)>=0?'+':''}${Number(growthRate).toFixed(1)}%`;
     qs('#successRate').textContent=successRate == null ? 'N/A' : `${Number(successRate).toFixed(1)}%`;
