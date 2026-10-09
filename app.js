@@ -68,7 +68,6 @@ function lockDashboard(message = '') {
   document.body.classList.add('auth-pending');
   qs('#loginError').textContent = message;
   qs('#loginPassword').value = '';
-  qs('#loginOtp').value = '';
   window.setTimeout(() => qs('#loginNumber').focus(), 50);
 }
 
@@ -490,7 +489,6 @@ qs('#loginForm').addEventListener('submit', async event => {
       body: JSON.stringify({
         countryCode: qs('#loginCountryCode').value,
         phone: qs('#loginNumber').value,
-        otp: qs('#loginOtp').value,
         password: qs('#loginPassword').value
       })
     });

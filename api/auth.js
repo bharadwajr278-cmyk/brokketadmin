@@ -58,17 +58,16 @@ module.exports = async function handler(request, response) {
   const body = parseBody(request.body);
   const phone = String(body.phone || body.number || '').replace(/\D/g, '');
   const countryCode = String(body.countryCode || '+91').trim();
-  const otp = String(body.otp || '').replace(/\D/g, '');
   const password = String(body.password || '');
-  if (!/^\d{7,15}$/.test(phone) || !/^\+\d{1,4}$/.test(countryCode) || !/^\d{4,8}$/.test(otp) || !password) {
-    return response.status(400).json({ success: false, message: 'Enter a valid phone number, OTP and password.' });
+  if (!/^\d{7,15}$/.test(phone) || !/^\+\d{1,4}$/.test(countryCode) || !password) {
+    return response.status(400).json({ success: false, message: 'Enter a valid phone number and password.' });
   }
 
   try {
     const upstream = await fetch(loginUrl, {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, countryCode, otp, password }),
+      body: JSON.stringify({ phone, countryCode, password }),
       cache: 'no-store',
       signal: AbortSignal.timeout(15000),
     });
@@ -85,7 +84,7 @@ module.exports = async function handler(request, response) {
       const unauthorizedRole = upstream.ok && authentication?.accessToken && !allowedRoles.includes(role);
       return response.status(401).json({
         success: false,
-        message: unauthorizedRole ? 'This account is not authorized for the CEO dashboard.' : 'Invalid phone number, OTP or password.',
+        message: unauthorizedRole ? 'This account is not authorized for the CEO dashboard.' : 'Invalid phone number or password.',
       });
     }
 

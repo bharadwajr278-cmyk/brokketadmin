@@ -18,7 +18,7 @@ DASHBOARD_SESSION_SECRET=<long random secret>
 DASHBOARD_ALLOWED_ROLES=ADMIN
 ```
 
-The frontend signs in through a same-origin serverless endpoint using country code, phone, OTP and password. The backend response is reduced to the user ID, role and API tokens, encrypted into a Secure/HttpOnly/SameSite cookie, and never exposed to browser JavaScript. Dashboard API calls pass through the authenticated same-origin proxy, which forwards the session access token and user ID to the backend. Only roles listed in `DASHBOARD_ALLOWED_ROLES` can open the dashboard.
+The frontend signs in through a same-origin serverless endpoint using country code, phone and password. The backend response is reduced to the user ID, role and API tokens, encrypted into a Secure/HttpOnly/SameSite cookie, and never exposed to browser JavaScript. Dashboard API calls pass through the authenticated same-origin proxy, which forwards the session access token and user ID to the backend. Only roles listed in `DASHBOARD_ALLOWED_ROLES` can open the dashboard.
 
 ## Vercel
 
