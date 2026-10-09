@@ -613,6 +613,16 @@ main {
   align-items: center;
   gap: 7px;
 }
+.legend b {
+  min-width: 22px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: 800 11px "DM Sans", sans-serif;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
 .legend i {
   width: 8px;
   height: 8px;
@@ -719,6 +729,17 @@ main {
   stroke: #fff;
   stroke-width: 2;
 }
+.chart-point.registration { fill: var(--lime-2); }
+.chart-point.login { fill: var(--blue); }
+.chart-value {
+  font: 800 10px "DM Sans", sans-serif;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.chart-value.registration { fill: #699400; }
+.chart-value.login { fill: #347fd7; }
 .score-stack {
   display: grid;
   gap: 12px;

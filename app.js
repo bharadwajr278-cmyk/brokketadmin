@@ -139,7 +139,12 @@ function chart(svgId, a = [], b = null, compact = false) {
   const grids = [0,.25,.5,.75,1].map(v => `<line class="grid-line" x1="${p}" y1="${p+v*(h-p*2)}" x2="${w-p}" y2="${p+v*(h-p*2)}"/><text class="axis-label" x="2" y="${p+v*(h-p*2)+4}">${Math.round(max*(1-v))}</text>`).join('');
   const step = Math.max(1, Math.ceil(a.length / 5));
   const labels = a.map((_,i) => i % step === 0 ? `<text class="axis-label" text-anchor="middle" x="${p+i*(w-p*2)/Math.max(1,a.length-1)}" y="${h-5}">${i+1}</text>` : '').join('');
-  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}<path class="${b?'area-a':'area-like'}" d="${area(a)}"/><path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${b?`<path class="line-b" d="${path(b)}"/>`:''}${labels}`;
+  const showCounts = Boolean(b) && a.length <= 12;
+  const points = (vals, series, name, offset) => pts(vals).map(([x,y],i) => {
+    const labelY = Math.max(12, Math.min(h - 10, y + offset));
+    return `<g><circle class="chart-point ${series}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${name}: ${fmt(vals[i])}</title></circle>${showCounts ? `<text class="chart-value ${series}" text-anchor="middle" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}">${fmt(vals[i])}</text>` : ''}</g>`;
+  }).join('');
+  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}<path class="${b?'area-a':'area-like'}" d="${area(a)}"/><path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${b?`<path class="line-b" d="${path(b)}"/>${points(a,'registration','Registrations',-10)}${points(b,'login','Logins',16)}`:''}${labels}`;
 }
 
 function renderRevenueChart(points = []) {
@@ -278,6 +283,8 @@ function renderCities(items = []) {
 function render() {
   const d=state.data,o=d.overview;
   [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',o.activeUsersInRange],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',o.newLikesInRange],['#demandLikes',o.newLikesInRange],['#uniqueUsers',o.activeUsersInRange]].forEach(([id,v]) => qs(id).textContent=fmt(v));
+  qs('#registrationCount').textContent=fmt(d.registrations.reduce((total,value)=>total+(Number(value)||0),0));
+  qs('#loginCount').textContent=fmt(d.logins.reduce((total,value)=>total+(Number(value)||0),0));
   chart('#trendChart',d.registrations,d.logins);
   chart('#likesChart',d.likes,null,true);
   renderBars(d.listings);
@@ -286,7 +293,7 @@ function render() {
   renderCities(d.cities);
 }
 function clearDashboard(message) {
-  ['#totalUsers','#newUsers','#activeUsers','#activeListings','#newListings','#newLikes','#demandLikes','#uniqueUsers','#growthRate','#successRate','#mixTotal'].forEach(id => qs(id).textContent='—');
+  ['#totalUsers','#newUsers','#activeUsers','#activeListings','#newListings','#newLikes','#demandLikes','#uniqueUsers','#growthRate','#successRate','#mixTotal','#registrationCount','#loginCount'].forEach(id => qs(id).textContent='—');
   ['#trendChart','#likesChart','#listingBars','#mixLegend','#leaderboard','#cityRows'].forEach(id => qs(id).innerHTML='');
   qs('#executiveInsight').textContent=message;
   qs('#dataMode').textContent='CONNECTION ERROR';
@@ -307,8 +314,9 @@ async function refresh() {
     const maxima={users:Math.max(1,...Object.values(uc).map(x=>x.count)),logins:Math.max(1,...Object.values(lc).map(x=>x.count)),listings:Math.max(1,...Object.values(sc).map(x=>x.count)),likes:Math.max(1,...Object.values(kc).map(x=>x.count))};
     const cityRows=codes.map(code=>{const source=uc[code]||lc[code]||sc[code]||kc[code];const row={code,name:source.name,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));row.volume=row.users+row.logins+row.listings+row.likes;return row}).sort((a,b)=>b.volume-a.volume).slice(0,10);
     state.data={overview,registrations:reg.map(x=>x.count),logins:logins.map(x=>x.count),likes:likes.map(x=>x.count),listings:listings.map(x=>x.count),listingOverview,contributors,cities:cityRows,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
-    qs('#growthRate').textContent=`${userOverview.growthRatePercent>=0?'+':''}${userOverview.growthRatePercent}%`;
-    qs('#successRate').textContent=`${loginOverview.successRatePercent}%`;
+    const growthRate=Number(userOverview.growthRatePercent)||0, successRate=Number(loginOverview.successRatePercent)||0;
+    qs('#growthRate').textContent=`${growthRate>=0?'+':''}${growthRate.toFixed(1)}%`;
+    qs('#successRate').textContent=`${successRate.toFixed(1)}%`;
     render();
     state.live=true;
     qs('#executiveInsight').textContent=`${fmt(overview.newUsersInRange)} new users and ${fmt(overview.newListingsInRange)} new listings in the selected period.`;
