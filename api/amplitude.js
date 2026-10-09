@@ -88,14 +88,22 @@ module.exports = async function handler(request, response) {
     const dauValues = dau.map(item => item.count);
     const liveData = liveUsersResponse.ok ? (liveUsersPayload?.data || {}) : {};
     const liveSeries = liveData.series?.[0] || [];
-    let latestLiveIndex = liveSeries.length - 1;
-    while (latestLiveIndex >= 0 && (
-      liveSeries[latestLiveIndex] === null || liveSeries[latestLiveIndex] === undefined ||
-      !Number.isFinite(Number(liveSeries[latestLiveIndex]))
-    )) latestLiveIndex -= 1;
+    const liveLabels = liveData.xValues || [];
+    const now = Date.now();
+    let latestLiveIndex = -1;
+    for (let index = liveSeries.length - 1; index >= 0; index -= 1) {
+      const rawValue = liveSeries[index];
+      const label = String(liveLabels[index] || '');
+      const timestamp = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(label) ? label : `${label}Z`);
+      if (rawValue !== null && rawValue !== undefined && Number.isFinite(Number(rawValue)) &&
+          Number.isFinite(timestamp) && timestamp <= now) {
+        latestLiveIndex = index;
+        break;
+      }
+    }
     const liveUsersAvailable = liveUsersResponse.ok && latestLiveIndex >= 0;
     const liveUsers = liveUsersAvailable ? Number(liveSeries[latestLiveIndex]) : null;
-    const liveUsersAsOf = liveUsersAvailable ? (liveData.xValues?.[latestLiveIndex] || '') : '';
+    const liveUsersAsOf = liveUsersAvailable ? (liveLabels[latestLiveIndex] || '') : '';
     if (!liveUsersResponse.ok) console.warn(`Amplitude live users unavailable: status=${liveUsersResponse.status}`);
     return response.status(200).json({
       success: true,
