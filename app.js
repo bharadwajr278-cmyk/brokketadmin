@@ -297,14 +297,16 @@ function renderAmplitude(data) {
   qs('#latestDau').textContent = fmt(data.latestDau);
   qs('#averageDau').textContent = fmt(data.averageDau);
   qs('#peakDau').textContent = fmt(data.peakDau);
-  qs('#totalDownloads').textContent = fmt(data.totalDownloads);
-  qs('#androidDownloads').textContent = fmt(data.androidDownloads);
-  qs('#iosDownloads').textContent = fmt(data.iosDownloads);
-  qs('#amplitudeScopeNote').textContent = data.otherDownloads
+  qs('#totalDownloads').textContent = data.downloadsAvailable ? fmt(data.totalDownloads) : '—';
+  qs('#androidDownloads').textContent = data.downloadsAvailable ? fmt(data.androidDownloads) : '—';
+  qs('#iosDownloads').textContent = data.downloadsAvailable ? fmt(data.iosDownloads) : '—';
+  qs('#amplitudeScopeNote').textContent = !data.downloadsAvailable ? data.downloadsMessage : data.otherDownloads
     ? `${fmt(data.otherDownloads)} daily unique installs were reported under platforms other than Android or iOS and are included only in the total.`
     : 'Download total reconciles to the Android and iOS daily series.';
   renderAmplitudeChart('#dauChart', data.dau);
-  renderAmplitudeChart('#downloadsChart', data.android, data.ios);
+  renderAmplitudeChart('#downloadsChart', data.downloadsAvailable ? data.android : [], data.downloadsAvailable ? data.ios : []);
+  qs('#amplitudeError').hidden = data.downloadsAvailable;
+  qs('#amplitudeError').textContent = data.downloadsAvailable ? '' : `${data.downloadsMessage} Daily active users are live.`;
 }
 
 function renderSubscriptions(data) {
@@ -403,7 +405,6 @@ async function refreshAddendumData() {
     qs('#activityError').textContent = `Property activity unavailable: ${activityResult.reason.message}`;
   }
   if (amplitudeResult.status === 'fulfilled') {
-    qs('#amplitudeError').hidden = true;
     renderAmplitude(amplitudeResult.value);
   } else {
     ['#latestDau','#averageDau','#peakDau','#totalDownloads','#androidDownloads','#iosDownloads'].forEach(id => qs(id).textContent = '—');

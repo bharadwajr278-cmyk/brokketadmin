@@ -50,19 +50,20 @@ module.exports = async function handler(request, response) {
     const [usersPayload, downloadsPayload] = await Promise.all([
       usersResponse.json().catch(() => null), downloadsResponse.json().catch(() => null),
     ]);
-    if (!usersResponse.ok || !downloadsResponse.ok) {
+    if (!usersResponse.ok) {
       console.warn(`Amplitude upstream status: users=${usersResponse.status}, downloads=${downloadsResponse.status}`);
-      const status = usersResponse.status === 401 || downloadsResponse.status === 401 ? 502 :
-        usersResponse.status === 429 || downloadsResponse.status === 429 ? 429 : 502;
+      const status = usersResponse.status === 429 ? 429 : 502;
       const message = status === 429 ? 'Amplitude rate limit reached. Try again shortly.' :
-        usersResponse.status === 401 || downloadsResponse.status === 401 ? 'Amplitude credentials were rejected.' :
-        `Amplitude API request failed (users ${usersResponse.status}, downloads ${downloadsResponse.status}).`;
+        usersResponse.status === 401 ? 'Amplitude credentials were rejected.' :
+        `Amplitude users API request failed (${usersResponse.status}).`;
       return response.status(status).json({ success: false, message });
     }
 
     const userData = usersPayload?.data || {};
     const dau = points(userData.xValues || [], userData.series?.[0] || []);
-    const downloadData = downloadsPayload?.data || {};
+    const downloadsAvailable = downloadsResponse.ok;
+    if (!downloadsAvailable) console.warn(`Amplitude downloads unavailable: status=${downloadsResponse.status}`);
+    const downloadData = downloadsAvailable ? (downloadsPayload?.data || {}) : {};
     const dates = downloadData.xValues || [];
     const labels = downloadData.seriesLabels || [];
     const series = downloadData.series || [];
@@ -84,10 +85,13 @@ module.exports = async function handler(request, response) {
         downloads: points(dates, allValues),
         android: points(dates, androidValues),
         ios: points(dates, iosValues),
-        totalDownloads: sum(allValues),
-        androidDownloads: sum(androidValues),
-        iosDownloads: sum(iosValues),
-        otherDownloads: Math.max(0, sum(allValues) - sum(androidValues) - sum(iosValues)),
+        totalDownloads: downloadsAvailable ? sum(allValues) : null,
+        androidDownloads: downloadsAvailable ? sum(androidValues) : null,
+        iosDownloads: downloadsAvailable ? sum(iosValues) : null,
+        otherDownloads: downloadsAvailable ? Math.max(0, sum(allValues) - sum(androidValues) - sum(iosValues)) : null,
+        downloadsAvailable,
+        downloadsMessage: downloadsAvailable ? '' :
+          `Amplitude event “${process.env.AMPLITUDE_INSTALL_EVENT || 'app_install_event'}” is unavailable (${downloadsResponse.status}).`,
       },
     });
   } catch (error) {
