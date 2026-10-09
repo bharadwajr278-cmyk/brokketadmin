@@ -73,11 +73,17 @@ module.exports = async function handler(request, response) {
     });
     const result = parseUpstream(await upstream.text());
     const authentication = result?.data;
+    const upstreamCookies = typeof upstream.headers.getSetCookie === 'function'
+      ? upstream.headers.getSetCookie()
+      : [upstream.headers.get('set-cookie')].filter(Boolean);
+    const backendSessionId = upstreamCookies
+      .map(cookie => /^JSESSIONID=([^;]+)/i.exec(cookie)?.[1])
+      .find(Boolean);
     const allowedRoles = String(process.env.DASHBOARD_ALLOWED_ROLES || 'ADMIN')
       .split(',').map(role => role.trim().toUpperCase()).filter(Boolean);
     const role = String(authentication?.role || '').toUpperCase();
     const valid = upstream.ok && String(result?.code) === '1000' && authentication?.id &&
-      authentication?.accessToken && allowedRoles.includes(role);
+      authentication?.accessToken && backendSessionId && allowedRoles.includes(role);
 
     if (!valid) {
       response.setHeader('Set-Cookie', sessionCookie('', 0));
@@ -93,6 +99,7 @@ module.exports = async function handler(request, response) {
       role,
       accessToken: String(authentication.accessToken),
       refreshToken: authentication.refreshToken ? String(authentication.refreshToken) : undefined,
+      backendSessionId: String(backendSessionId),
       accessTokenExpiry: authentication.accessTokenExpiry,
     });
     response.setHeader('Set-Cookie', sessionCookie(session));

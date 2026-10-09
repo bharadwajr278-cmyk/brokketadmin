@@ -2,6 +2,7 @@ const API = '/api/proxy';
 const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30' };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
+const crore = n => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format((Number(n) || 0) / 10000000)} Cr`;
 const qs = s => document.querySelector(s);
 
 function dateRange() {
@@ -54,6 +55,19 @@ async function api(path, extra = {}, options = {}) {
     lockDashboard('Your session expired. Please sign in again.');
   }
   if (!response.ok || !body?.success) throw new Error(body?.message || `API request failed (${response.status})`);
+  return body.data;
+}
+
+async function propertyActivityApi() {
+  const query = params();
+  const response = await fetch(`/api/property-activities?${query}`, {
+    signal: AbortSignal.timeout(30000),
+    cache: 'no-store',
+    credentials: 'same-origin'
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard(body?.message || 'Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `Property activity request failed (${response.status})`);
   return body.data;
 }
 
@@ -208,6 +222,44 @@ function renderRevenueChart(points = []) {
   svg.innerHTML = `<line class="grid-line" x1="${p}" y1="${baseline}" x2="${w-p}" y2="${baseline}"/>${bars}${labels}`;
 }
 
+function renderActivityCostChart(data) {
+  const points = data.dailyCosts || [];
+  const svg = qs('#activityCostChart'), w = 760, h = 210, p = 34;
+  if (!points.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No query cost activity in this range</text>';
+    qs('#latestDailyCost').textContent = '—';
+    return;
+  }
+  const values = points.map(point => Number(point.amount) || 0);
+  const max = Math.max(1, ...values), slot = (w - p * 2) / values.length;
+  const barWidth = Math.max(5, Math.min(28, slot * 0.58));
+  const bars = values.map((value, index) => {
+    const height = Math.max(2, value / max * (h - p * 2));
+    const x = p + index * slot + (slot - barWidth) / 2;
+    const y = h - p - height;
+    return `<rect class="activity-cost-bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${height.toFixed(1)}" rx="4"><title>${formatDate(points[index].label)} · ${crore(value)} · ${fmt(points[index].interactions)} interactions</title></rect>`;
+  }).join('');
+  const step = Math.max(1, Math.ceil(points.length / 5));
+  const labels = points.map((point, index) => index % step === 0 || index === points.length - 1
+    ? `<text class="axis-label" text-anchor="middle" x="${(p + index * slot + slot / 2).toFixed(1)}" y="${h - 6}">${point.label.slice(5)}</text>` : '').join('');
+  const grids = [0, .5, 1].map(value => `<line class="grid-line" x1="${p}" y1="${p + value * (h - p * 2)}" x2="${w - p}" y2="${p + value * (h - p * 2)}"/>`).join('');
+  svg.innerHTML = `${grids}${bars}${labels}`;
+  qs('#latestDailyCost').textContent = crore(values[values.length - 1]);
+}
+
+function renderPropertyActivity(data) {
+  qs('#activityCalled').textContent = fmt(data.called);
+  qs('#activityWhatsapped').textContent = fmt(data.whatsapped);
+  qs('#activityShared').textContent = fmt(data.shared);
+  qs('#activityTotal').textContent = fmt(data.totalInteractions);
+  qs('#activityCost').textContent = crore(data.totalQueryCost);
+  const scope = data.trendLimited
+    ? `Daily cost from ${formatDate(data.trendFromDate)} · last ${data.trendDays} days of selected period`
+    : 'Daily cost for the selected period';
+  qs('#activityTrendScope').textContent = data.dailyCostIncomplete ? `${scope} · partial backend data` : scope;
+  renderActivityCostChart(data);
+}
+
 function renderSubscriptions(data) {
   const values = [
     ['#activeSubscribers', data.totalActiveSubscribers], ['#activeIncludingTrial', data.totalActiveIncludingTrial],
@@ -264,10 +316,11 @@ async function loadRoster() {
 }
 
 async function refreshAddendumData() {
-  const [overviewResult, trendResult, contentResult] = await Promise.allSettled([
+  const [overviewResult, trendResult, contentResult, activityResult] = await Promise.allSettled([
     api('/subscriptions/overview', {}, { city: false }),
     api('/subscriptions/revenue-trend', { groupBy: state.groupBy }, { city: false }),
-    api('/content/overview', {}, { city: false })
+    api('/content/overview', {}, { city: false }),
+    propertyActivityApi()
   ]);
   if (overviewResult.status === 'fulfilled') {
     qs('#subscriptionError').hidden = true;
@@ -290,6 +343,16 @@ async function refreshAddendumData() {
     qs('#contentScopeNote').textContent = '';
     qs('#contentError').hidden = false;
     qs('#contentError').textContent = `Content metrics unavailable: ${contentResult.reason.message}`;
+  }
+  if (activityResult.status === 'fulfilled') {
+    qs('#activityError').hidden = true;
+    renderPropertyActivity(activityResult.value);
+  } else {
+    ['#activityCalled','#activityWhatsapped','#activityShared','#activityTotal','#activityCost','#latestDailyCost'].forEach(id => qs(id).textContent = '—');
+    qs('#activityCostChart').innerHTML = '';
+    qs('#activityTrendScope').textContent = 'Daily query cost unavailable';
+    qs('#activityError').hidden = false;
+    qs('#activityError').textContent = `Property activity unavailable: ${activityResult.reason.message}`;
   }
   await loadRoster();
 }

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261009-11" />
+  <link rel="stylesheet" href="styles.css?v=20261009-12" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -38,6 +38,7 @@
         <a class="nav-item" href="#growth"><span>↗</span> Growth</a>
         <a class="nav-item" href="#supply"><span>▱</span> Supply</a>
         <a class="nav-item" href="#demand"><span>♡</span> Demand</a>
+        <a class="nav-item" href="#activity"><span>◉</span> Activity</a>
         <a class="nav-item" href="#revenue"><span>₹</span> Revenue</a>
         <a class="nav-item" href="#content"><span>▦</span> Content</a>
         <a class="nav-item" href="#geography"><span>⌖</span> Geography</a>
@@ -144,8 +145,24 @@
           </div>
         </section>
 
+        <section id="activity" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">04 · PROPERTY ACTIVITY</p><h2>Buyer actions & query cost</h2></div><p class="section-note">Selected period and market · refreshed every 5 minutes</p></div>
+          <div class="section-error" id="activityError" hidden></div>
+          <div class="activity-kpis">
+            <article class="activity-kpi called"><span>Called</span><strong id="activityCalled">—</strong><small>phone enquiries</small></article>
+            <article class="activity-kpi whatsapped"><span>WhatsApped</span><strong id="activityWhatsapped">—</strong><small>WhatsApp enquiries</small></article>
+            <article class="activity-kpi shared"><span>Shared</span><strong id="activityShared">—</strong><small>listing shares</small></article>
+            <article class="activity-kpi all"><span>All interactions</span><strong id="activityTotal">—</strong><small>including clicks</small></article>
+            <article class="activity-kpi cost"><span>Total query cost</span><strong id="activityCost">—</strong><small>selected period</small></article>
+          </div>
+          <article class="panel activity-cost-panel">
+            <div class="panel-head"><div><h3>Daily query cost</h3><p id="activityTrendScope">Daily cost for the selected period</p></div><span class="metric-annotation"><b id="latestDailyCost">—</b> latest day</span></div>
+            <div class="chart-wrap compact"><svg id="activityCostChart" viewBox="0 0 760 210" role="img" aria-label="Daily property query cost"></svg></div>
+          </article>
+        </section>
+
         <section id="revenue" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">04 · SUBSCRIPTIONS</p><h2>Revenue & subscriptions</h2></div><p class="section-note">Net revenue after completed refunds</p></div>
+          <div class="section-heading"><div><p class="eyebrow">05 · SUBSCRIPTIONS</p><h2>Revenue & subscriptions</h2></div><p class="section-note">Net revenue after completed refunds</p></div>
           <div class="section-error" id="subscriptionError" hidden></div>
           <div class="subscription-kpis">
             <article class="subscription-kpi dark"><span>Active paid</span><strong id="activeSubscribers">—</strong><small>excluding trials</small></article>
@@ -180,7 +197,7 @@
         </section>
 
         <section id="content" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">05 · CONTENT</p><h2>Feed & picture activity</h2></div><p class="section-note">All cities · active feed content in the selected period</p></div>
+          <div class="section-heading"><div><p class="eyebrow">06 · CONTENT</p><h2>Feed & picture activity</h2></div><p class="section-note">All cities · active feed content in the selected period</p></div>
           <div class="section-error" id="contentError" hidden></div>
           <div class="content-kpis">
             <article class="content-kpi"><span class="metric-icon">▦</span><div><small>Feed posts</small><strong id="feedPosts">—</strong><p>Active posts in range</p></div></article>
@@ -192,7 +209,7 @@
         </section>
 
         <section id="geography" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">06 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Available city-attributed data only</p></div>
+          <div class="section-heading"><div><p class="eyebrow">07 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Available city-attributed data only</p></div>
           <article class="panel geography-panel">
             <div class="city-table" role="table" aria-label="City performance">
               <div class="city-row city-head" role="row"><span>Market</span><span>New users</span><span>Logins</span><span>Listings</span><span>Deal-card likes</span><span>Relative index</span></div>
@@ -207,6 +224,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261009-11"></script>
+  <script src="app.js?v=20261009-12"></script>
 </body>
 </html>

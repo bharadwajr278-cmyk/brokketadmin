@@ -1140,6 +1140,95 @@ main {
   font-weight: 600;
 }
 
+.activity-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.activity-kpi {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.activity-kpi span,
+.activity-kpi small,
+.activity-kpi strong {
+  display: block;
+}
+
+.activity-kpi span {
+  color: #7f8f99;
+  font: 700 9px "Manrope", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.activity-kpi strong {
+  overflow: hidden;
+  margin: 9px 0 8px;
+  color: var(--ink);
+  font: 800 23px/1 "Manrope", sans-serif;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-kpi small {
+  color: #8a9793;
+  font-size: 9px;
+}
+
+.activity-kpi.called {
+  border-color: #d5ecdf;
+  background: #effcf4;
+}
+
+.activity-kpi.called strong { color: #168a4b; }
+
+.activity-kpi.whatsapped {
+  border-color: #d1ece8;
+  background: #effbf9;
+}
+
+.activity-kpi.whatsapped strong { color: #087f73; }
+
+.activity-kpi.shared {
+  border-color: #ded8f4;
+  background: #f5f2ff;
+}
+
+.activity-kpi.shared strong { color: #6731dc; }
+
+.activity-kpi.all { background: #f7f9fb; }
+
+.activity-kpi.cost {
+  border-color: #f0d6d6;
+  background: #fff3f3;
+}
+
+.activity-kpi.cost strong {
+  color: #d12d2d;
+  font-size: 19px;
+}
+
+.activity-cost-panel {
+  padding: 20px;
+}
+
+.activity-cost-bar {
+  fill: #087f73;
+}
+
+.activity-cost-bar:hover {
+  fill: var(--lime-2);
+}
+
 .subscription-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -1511,6 +1600,9 @@ footer {
   .subscription-kpis {
     grid-template-columns: repeat(3, 1fr);
   }
+  .activity-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 860px) {
   .sidebar {
@@ -1618,6 +1710,7 @@ footer {
     display: block;
   }
   .subscription-kpis,
+  .activity-kpis,
   .content-kpis {
     grid-template-columns: 1fr 1fr;
   }
