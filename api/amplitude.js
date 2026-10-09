@@ -33,15 +33,7 @@ module.exports = async function handler(request, response) {
   const common = { start: amplitudeDate(fromDate), end: amplitudeDate(toDate), i: '1' };
   const usersUrl = new URL('https://amplitude.com/api/2/users');
   Object.entries({ ...common, m: 'active' }).forEach(([key, value]) => usersUrl.searchParams.set(key, value));
-  const currentUtcHour = new Date().toISOString().replace(/[-:]/g, '').slice(0, 11);
-  const liveUsersUrl = new URL('https://amplitude.com/api/2/events/segmentation');
-  Object.entries({
-    e: JSON.stringify({ event_type: '_active' }),
-    m: 'uniques',
-    i: '-300000',
-    start: currentUtcHour,
-    end: currentUtcHour,
-  }).forEach(([key, value]) => liveUsersUrl.searchParams.set(key, value));
+  const liveUsersUrl = new URL('https://amplitude.com/api/2/realtime');
   const downloadsUrl = new URL('https://amplitude.com/api/2/segmentation');
   Object.entries({
     ...common,
@@ -87,20 +79,14 @@ module.exports = async function handler(request, response) {
     const sum = values => values.reduce((total, value) => total + (Number(value) || 0), 0);
     const dauValues = dau.map(item => item.count);
     const liveData = liveUsersResponse.ok ? (liveUsersPayload?.data || {}) : {};
-    const liveSeries = liveData.series?.[0] || [];
+    const todayIndex = (liveData.seriesLabels || []).findIndex(label => /today/i.test(String(label)));
+    const liveSeries = liveData.series?.[todayIndex >= 0 ? todayIndex : 0] || [];
     const liveLabels = liveData.xValues || [];
-    const now = Date.now();
-    let latestLiveIndex = -1;
-    for (let index = liveSeries.length - 1; index >= 0; index -= 1) {
-      const rawValue = liveSeries[index];
-      const label = String(liveLabels[index] || '');
-      const timestamp = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(label) ? label : `${label}Z`);
-      if (rawValue !== null && rawValue !== undefined && Number.isFinite(Number(rawValue)) &&
-          Number.isFinite(timestamp) && timestamp <= now) {
-        latestLiveIndex = index;
-        break;
-      }
-    }
+    let latestLiveIndex = liveSeries.length - 1;
+    while (latestLiveIndex >= 0 && (
+      liveSeries[latestLiveIndex] === null || liveSeries[latestLiveIndex] === undefined ||
+      !Number.isFinite(Number(liveSeries[latestLiveIndex]))
+    )) latestLiveIndex -= 1;
     const liveUsersAvailable = liveUsersResponse.ok && latestLiveIndex >= 0;
     const liveUsers = liveUsersAvailable ? Number(liveSeries[latestLiveIndex]) : null;
     const liveUsersAsOf = liveUsersAvailable ? (liveLabels[latestLiveIndex] || '') : '';
