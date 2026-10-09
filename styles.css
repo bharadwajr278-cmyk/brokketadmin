@@ -1308,6 +1308,16 @@ main {
 .analytics-kpi.dark span,
 .analytics-kpi.dark small { color: #a5b3af; }
 .analytics-kpi.dark strong { color: #d4ff6d; }
+.live-mini-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #b9f13b;
+  box-shadow: 0 0 0 4px rgba(185, 241, 59, .12);
+  vertical-align: 1px;
+}
 .analytics-kpi.average {
   border-color: #dce9cf;
   background: linear-gradient(145deg, #fff, #f5faee);

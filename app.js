@@ -345,8 +345,8 @@ function renderAmplitude(data) {
   qs('#downloadAnalytics').hidden = !data.downloadsAvailable;
   qs('#analyticsKpis').classList.toggle('dau-only', !data.downloadsAvailable);
   qs('.analytics-layout').classList.toggle('dau-only', !data.downloadsAvailable);
-  qs('#appAnalyticsTitle').textContent = data.downloadsAvailable ? 'Active users & downloads' : 'Active user intelligence';
-  qs('#appAnalyticsNote').textContent = data.downloadsAvailable ? 'Amplitude · daily unique users and installs' : 'Amplitude · daily unique active users';
+  qs('#appAnalyticsTitle').textContent = data.downloadsAvailable ? 'Daily Active Users (DAU) & downloads' : 'Daily Active Users (DAU)';
+  qs('#appAnalyticsNote').textContent = data.downloadsAvailable ? 'Amplitude · daily unique users and installs' : 'Amplitude · users active today and historical daily trend';
   const first = data.dau?.[0], last = data.dau?.at(-1);
   qs('#dauRangeSummary').textContent = first && last
     ? `${data.dau.length} daily points · ${formatDate(first.label)} to ${formatDate(last.label)}`

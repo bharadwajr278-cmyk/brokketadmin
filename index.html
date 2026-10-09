@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261009-14" />
+  <link rel="stylesheet" href="styles.css?v=20261009-15" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -123,15 +123,15 @@
           <div class="section-heading"><div><p class="eyebrow">02 · APP ANALYTICS</p><h2 id="appAnalyticsTitle">Active users & downloads</h2></div><p class="section-note" id="appAnalyticsNote">Amplitude · daily unique users · selected period</p></div>
           <div class="section-error" id="amplitudeError" hidden></div>
           <div class="analytics-kpis" id="analyticsKpis">
-            <article class="analytics-kpi dark"><span>Latest DAU</span><strong id="latestDau">—</strong><small>latest available day</small><i class="kpi-glow"></i></article>
-            <article class="analytics-kpi average"><span>Average DAU</span><strong id="averageDau">—</strong><small>daily average in range</small></article>
-            <article class="analytics-kpi peak"><span>Peak DAU</span><strong id="peakDau">—</strong><small>highest day in range</small></article>
+            <article class="analytics-kpi dark"><span>Users active today</span><strong id="latestDau">—</strong><small><i class="live-mini-dot"></i>Daily Active Users · refreshes every 5m</small><i class="kpi-glow"></i></article>
+            <article class="analytics-kpi average"><span>Average Daily Active Users</span><strong id="averageDau">—</strong><small>average DAU in selected range</small></article>
+            <article class="analytics-kpi peak"><span>Peak Daily Active Users</span><strong id="peakDau">—</strong><small>highest DAU in selected range</small></article>
             <article class="analytics-kpi downloads download-only"><span>Daily downloads total</span><strong id="totalDownloads">—</strong><small>sum of daily unique installs</small></article>
             <article class="analytics-kpi android download-only"><span>Android</span><strong id="androidDownloads">—</strong><small>daily unique installs</small></article>
             <article class="analytics-kpi ios download-only"><span>iOS</span><strong id="iosDownloads">—</strong><small>daily unique installs</small></article>
           </div>
           <div class="analytics-layout">
-            <article class="panel analytics-chart-panel dau-chart-panel"><div class="panel-head"><div><h3>Daily active users</h3><p id="dauRangeSummary">Unique active users per day</p></div><span class="analytics-source"><i></i> Live Amplitude</span></div><div class="chart-wrap dau-chart-wrap"><svg id="dauChart" viewBox="0 0 900 300" role="img" aria-label="Daily active users"></svg></div></article>
+            <article class="panel analytics-chart-panel dau-chart-panel"><div class="panel-head"><div><h3>Daily Active Users (DAU)</h3><p id="dauRangeSummary">Unique active users per day</p></div><span class="analytics-source"><i></i> Refreshes every 5 min</span></div><div class="chart-wrap dau-chart-wrap"><svg id="dauChart" viewBox="0 0 900 300" role="img" aria-label="Daily Active Users"></svg></div></article>
             <article class="panel analytics-chart-panel" id="downloadAnalytics"><div class="panel-head"><div><h3>Daily app downloads</h3><p>Unique installs by platform</p></div><div class="legend compact-legend"><span><i class="lime"></i> Android</span><span><i class="blue"></i> iOS</span></div></div><div class="chart-wrap compact"><svg id="downloadsChart" viewBox="0 0 760 210" role="img" aria-label="Daily Android and iOS app downloads"></svg></div></article>
           </div>
           <p class="scope-note" id="amplitudeScopeNote"></p>
@@ -243,6 +243,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261009-14"></script>
+  <script src="app.js?v=20261009-15"></script>
 </body>
 </html>
