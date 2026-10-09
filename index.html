@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261009-12" />
+  <link rel="stylesheet" href="styles.css?v=20261009-13" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -36,6 +36,7 @@
       <nav>
         <a class="nav-item active" href="#overview" aria-current="page"><span>⌁</span> Overview</a>
         <a class="nav-item" href="#growth"><span>↗</span> Growth</a>
+        <a class="nav-item" href="#app-analytics"><span>◌</span> App Analytics</a>
         <a class="nav-item" href="#supply"><span>▱</span> Supply</a>
         <a class="nav-item" href="#demand"><span>♡</span> Demand</a>
         <a class="nav-item" href="#activity"><span>◉</span> Activity</a>
@@ -118,8 +119,26 @@
           </div>
         </section>
 
+        <section id="app-analytics" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">02 · APP ANALYTICS</p><h2>Active users & downloads</h2></div><p class="section-note">Amplitude · daily unique users · selected period</p></div>
+          <div class="section-error" id="amplitudeError" hidden></div>
+          <div class="analytics-kpis">
+            <article class="analytics-kpi dark"><span>Latest DAU</span><strong id="latestDau">—</strong><small>latest available day</small></article>
+            <article class="analytics-kpi"><span>Average DAU</span><strong id="averageDau">—</strong><small>daily average in range</small></article>
+            <article class="analytics-kpi"><span>Peak DAU</span><strong id="peakDau">—</strong><small>highest day in range</small></article>
+            <article class="analytics-kpi downloads"><span>Daily downloads total</span><strong id="totalDownloads">—</strong><small>sum of daily unique installs</small></article>
+            <article class="analytics-kpi android"><span>Android</span><strong id="androidDownloads">—</strong><small>daily unique installs</small></article>
+            <article class="analytics-kpi ios"><span>iOS</span><strong id="iosDownloads">—</strong><small>daily unique installs</small></article>
+          </div>
+          <div class="analytics-layout">
+            <article class="panel analytics-chart-panel"><div class="panel-head"><div><h3>Daily active users</h3><p>Unique active users per day</p></div><span class="analytics-source">Amplitude DAU</span></div><div class="chart-wrap compact"><svg id="dauChart" viewBox="0 0 760 210" role="img" aria-label="Daily active users"></svg></div></article>
+            <article class="panel analytics-chart-panel"><div class="panel-head"><div><h3>Daily app downloads</h3><p>Unique installs by platform</p></div><div class="legend compact-legend"><span><i class="lime"></i> Android</span><span><i class="blue"></i> iOS</span></div></div><div class="chart-wrap compact"><svg id="downloadsChart" viewBox="0 0 760 210" role="img" aria-label="Daily Android and iOS app downloads"></svg></div></article>
+          </div>
+          <p class="scope-note" id="amplitudeScopeNote"></p>
+        </section>
+
         <section id="supply" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">02 · SUPPLY</p><h2>Marketplace inventory</h2></div><p class="section-note">New active listings by transaction type</p></div>
+          <div class="section-heading"><div><p class="eyebrow">03 · SUPPLY</p><h2>Marketplace inventory</h2></div><p class="section-note">New active listings by transaction type</p></div>
           <div class="supply-layout">
             <article class="panel mix-panel">
               <div class="panel-head"><div><h3>Supply mix</h3><p><strong id="mixTotal">—</strong> listings added</p></div></div>
@@ -138,7 +157,7 @@
         </section>
 
         <section id="demand" class="section-block demand-block">
-          <div class="section-heading"><div><p class="eyebrow">03 · DEMAND</p><h2>Deal-card engagement</h2></div><button class="info-btn" id="scopeInfo" aria-expanded="false">i <span>Measures likes on Mandate and Requirement listings. Sale and Rent likes are lifetime counters and are excluded from date-ranged reporting.</span></button></div>
+          <div class="section-heading"><div><p class="eyebrow">04 · DEMAND</p><h2>Deal-card engagement</h2></div><button class="info-btn" id="scopeInfo" aria-expanded="false">i <span>Measures likes on Mandate and Requirement listings. Sale and Rent likes are lifetime counters and are excluded from date-ranged reporting.</span></button></div>
           <div class="demand-layout">
             <article class="demand-hero"><div><p>Tracked likes</p><strong id="demandLikes">—</strong><span>Live from Brokket</span></div><div class="demand-orbit"><span>♡</span></div></article>
             <article class="panel demand-chart"><div class="panel-head"><div><h3>Engagement pulse</h3><p>Daily intent signals</p></div><span class="metric-annotation"><b id="likesPerListing">—</b> tracked likes / new listing</span></div><div class="chart-wrap compact"><svg id="likesChart" viewBox="0 0 760 180" role="img" aria-label="Likes trend"></svg></div></article>
@@ -146,7 +165,7 @@
         </section>
 
         <section id="activity" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">04 · PROPERTY ACTIVITY</p><h2>Buyer actions & query cost</h2></div><p class="section-note">Selected period and market · refreshed every 5 minutes</p></div>
+          <div class="section-heading"><div><p class="eyebrow">05 · PROPERTY ACTIVITY</p><h2>Buyer actions & query cost</h2></div><p class="section-note">Selected period and market · refreshed every 5 minutes</p></div>
           <div class="section-error" id="activityError" hidden></div>
           <div class="activity-kpis">
             <article class="activity-kpi called"><span>Called</span><strong id="activityCalled">—</strong><small>phone enquiries</small></article>
@@ -162,7 +181,7 @@
         </section>
 
         <section id="revenue" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">05 · SUBSCRIPTIONS</p><h2>Revenue & subscriptions</h2></div><p class="section-note">Net revenue after completed refunds</p></div>
+          <div class="section-heading"><div><p class="eyebrow">06 · SUBSCRIPTIONS</p><h2>Revenue & subscriptions</h2></div><p class="section-note">Net revenue after completed refunds</p></div>
           <div class="section-error" id="subscriptionError" hidden></div>
           <div class="subscription-kpis">
             <article class="subscription-kpi dark"><span>Active paid</span><strong id="activeSubscribers">—</strong><small>excluding trials</small></article>
@@ -197,7 +216,7 @@
         </section>
 
         <section id="content" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">06 · CONTENT</p><h2>Feed & picture activity</h2></div><p class="section-note">All cities · active feed content in the selected period</p></div>
+          <div class="section-heading"><div><p class="eyebrow">07 · CONTENT</p><h2>Feed & picture activity</h2></div><p class="section-note">All cities · active feed content in the selected period</p></div>
           <div class="section-error" id="contentError" hidden></div>
           <div class="content-kpis">
             <article class="content-kpi"><span class="metric-icon">▦</span><div><small>Feed posts</small><strong id="feedPosts">—</strong><p>Active posts in range</p></div></article>
@@ -205,11 +224,11 @@
             <article class="content-kpi"><span class="metric-icon">◎</span><div><small>Unique creators</small><strong id="contentCreators">—</strong><p>Distinct publishers</p></div></article>
           </div>
           <p class="scope-note" id="contentScopeNote"></p>
-          <div class="coverage-note"><strong>Coverage gap</strong><span>App downloads, Circle activity, Clips and Blinks are not available from the current CEO API. No values are estimated.</span></div>
+          <div class="coverage-note"><strong>Coverage gap</strong><span>Circle activity, Clips and Blinks are not available from the current APIs. No values are estimated.</span></div>
         </section>
 
         <section id="geography" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">07 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Available city-attributed data only</p></div>
+          <div class="section-heading"><div><p class="eyebrow">08 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Available city-attributed data only</p></div>
           <article class="panel geography-panel">
             <div class="city-table" role="table" aria-label="City performance">
               <div class="city-row city-head" role="row"><span>Market</span><span>New users</span><span>Logins</span><span>Listings</span><span>Deal-card likes</span><span>Relative index</span></div>
@@ -224,6 +243,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261009-12"></script>
+  <script src="app.js?v=20261009-13"></script>
 </body>
 </html>

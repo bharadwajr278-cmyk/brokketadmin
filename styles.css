@@ -1229,6 +1229,91 @@ main {
   fill: var(--lime-2);
 }
 
+.analytics-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.analytics-kpi {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.analytics-kpi span,
+.analytics-kpi strong,
+.analytics-kpi small {
+  display: block;
+}
+
+.analytics-kpi span {
+  overflow: hidden;
+  color: #788781;
+  font: 700 9px "Manrope", sans-serif;
+  letter-spacing: .07em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.analytics-kpi strong {
+  margin: 9px 0 8px;
+  font: 800 24px/1 "Manrope", sans-serif;
+  letter-spacing: -.04em;
+}
+
+.analytics-kpi small {
+  overflow: hidden;
+  color: #8a9793;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analytics-kpi.dark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.analytics-kpi.dark span,
+.analytics-kpi.dark small { color: #a5b3af; }
+.analytics-kpi.downloads { background: #f3fae6; }
+.analytics-kpi.android { background: #f0fbf4; }
+.analytics-kpi.android strong { color: #168a4b; }
+.analytics-kpi.ios { background: #eef6ff; }
+.analytics-kpi.ios strong { color: #347fd7; }
+
+.analytics-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analytics-chart-panel {
+  min-width: 0;
+  padding: 20px;
+}
+
+.analytics-source {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f0f6ed;
+  color: #61706a;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.compact-legend {
+  gap: 12px;
+  font-size: 9px;
+}
+
 .subscription-kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -1603,6 +1688,9 @@ footer {
   .activity-kpis {
     grid-template-columns: repeat(3, 1fr);
   }
+  .analytics-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 860px) {
   .sidebar {
@@ -1644,6 +1732,7 @@ footer {
   }
   .growth-layout,
   .demand-layout,
+  .analytics-layout,
   .subscription-layout {
     grid-template-columns: 1fr;
   }
@@ -1711,6 +1800,7 @@ footer {
   }
   .subscription-kpis,
   .activity-kpis,
+  .analytics-kpis,
   .content-kpis {
     grid-template-columns: 1fr 1fr;
   }

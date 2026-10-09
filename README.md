@@ -9,6 +9,7 @@ The dashboard covers the original 15 growth, login, listing, likes and city endp
 - feed posts, picture-post approximation and unique content creators
 - authenticated property actions (called, WhatsApped, shared and all interactions)
 - selected-period query cost with a daily trend for up to the latest 7 days
+- Amplitude daily active users and daily unique app installs split by Android and iOS
 
 Configure these values in the production host's environment, not in Git:
 
@@ -18,11 +19,17 @@ BROKKET_AUTH_URL=https://test.api.propertymaster.com/api/user/login-with-passwor
 BROKKET_API_KEY=<optional API key>
 DASHBOARD_SESSION_SECRET=<long random secret>
 DASHBOARD_ALLOWED_ROLES=ADMIN
+AMPLITUDE_API_KEY=<Amplitude project API key>
+AMPLITUDE_SECRET_KEY=<Amplitude project secret key>
+AMPLITUDE_INSTALL_EVENT=app_install_event
+AMPLITUDE_PLATFORM_PROPERTY=platform
 ```
 
 The frontend signs in through a same-origin serverless endpoint using country code, phone and password. The backend response is reduced to the user ID, role and API tokens, encrypted into a Secure/HttpOnly/SameSite cookie, and never exposed to browser JavaScript. Dashboard API calls pass through the authenticated same-origin proxy, which forwards the session access token and user ID to the backend. Only roles listed in `DASHBOARD_ALLOWED_ROLES` can open the dashboard.
 
 The property-activity endpoint additionally requires the backend `JSESSIONID`. It is captured during login, encrypted inside the same dashboard session cookie, and forwarded only by the server-side property-activity proxy.
+
+Amplitude credentials are used only by the server-side `/api/amplitude` proxy with HTTP Basic authentication. They are never included in frontend JavaScript or returned to the browser.
 
 ## Vercel
 

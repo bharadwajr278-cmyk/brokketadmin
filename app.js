@@ -71,6 +71,17 @@ async function propertyActivityApi() {
   return body.data;
 }
 
+async function amplitudeApi() {
+  const query = params({}, { city: false });
+  const response = await fetch(`/api/amplitude?${query}`, {
+    signal: AbortSignal.timeout(25000), cache: 'no-store', credentials: 'same-origin'
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard('Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `Amplitude request failed (${response.status})`);
+  return body.data;
+}
+
 function unlockDashboard() {
   document.body.classList.remove('auth-pending');
   document.body.classList.add('authenticated');
@@ -260,6 +271,42 @@ function renderPropertyActivity(data) {
   renderActivityCostChart(data);
 }
 
+function renderAmplitudeChart(selector, primary = [], secondary = null) {
+  const svg = qs(selector), w = 760, h = 210, p = 34;
+  if (!primary.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No Amplitude activity in this range</text>';
+    return;
+  }
+  const labels = primary.map(point => point.label);
+  const first = primary.map(point => Number(point.count) || 0);
+  const second = secondary ? secondary.map(point => Number(point.count) || 0) : null;
+  const max = Math.max(1, ...first, ...(second || []));
+  const x = index => p + index * (w - p * 2) / Math.max(1, labels.length - 1);
+  const y = value => h - p - value / max * (h - p * 2);
+  const path = values => values.map((value, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(' ');
+  const grids = [0, .5, 1].map(value => `<line class="grid-line" x1="${p}" y1="${p + value * (h - p * 2)}" x2="${w - p}" y2="${p + value * (h - p * 2)}"/>`).join('');
+  const step = Math.max(1, Math.ceil(labels.length / 5));
+  const axisLabels = labels.map((label, index) => index % step === 0 || index === labels.length - 1
+    ? `<text class="axis-label" text-anchor="middle" x="${x(index).toFixed(1)}" y="${h - 6}">${String(label).slice(5)}</text>` : '').join('');
+  const dots = (values, className, title) => values.map((value, index) =>
+    `<circle class="chart-point ${className}" cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="3"><title>${formatDate(labels[index])} · ${title}: ${fmt(value)}</title></circle>`).join('');
+  svg.innerHTML = `${grids}<path class="line-a" d="${path(first)}"/>${dots(first, 'registration', secondary ? 'Android' : 'Active users')}${second ? `<path class="line-b" d="${path(second)}"/>${dots(second, 'login', 'iOS')}` : ''}${axisLabels}`;
+}
+
+function renderAmplitude(data) {
+  qs('#latestDau').textContent = fmt(data.latestDau);
+  qs('#averageDau').textContent = fmt(data.averageDau);
+  qs('#peakDau').textContent = fmt(data.peakDau);
+  qs('#totalDownloads').textContent = fmt(data.totalDownloads);
+  qs('#androidDownloads').textContent = fmt(data.androidDownloads);
+  qs('#iosDownloads').textContent = fmt(data.iosDownloads);
+  qs('#amplitudeScopeNote').textContent = data.otherDownloads
+    ? `${fmt(data.otherDownloads)} daily unique installs were reported under platforms other than Android or iOS and are included only in the total.`
+    : 'Download total reconciles to the Android and iOS daily series.';
+  renderAmplitudeChart('#dauChart', data.dau);
+  renderAmplitudeChart('#downloadsChart', data.android, data.ios);
+}
+
 function renderSubscriptions(data) {
   const values = [
     ['#activeSubscribers', data.totalActiveSubscribers], ['#activeIncludingTrial', data.totalActiveIncludingTrial],
@@ -316,11 +363,12 @@ async function loadRoster() {
 }
 
 async function refreshAddendumData() {
-  const [overviewResult, trendResult, contentResult, activityResult] = await Promise.allSettled([
+  const [overviewResult, trendResult, contentResult, activityResult, amplitudeResult] = await Promise.allSettled([
     api('/subscriptions/overview', {}, { city: false }),
     api('/subscriptions/revenue-trend', { groupBy: state.groupBy }, { city: false }),
     api('/content/overview', {}, { city: false }),
-    propertyActivityApi()
+    propertyActivityApi(),
+    amplitudeApi()
   ]);
   if (overviewResult.status === 'fulfilled') {
     qs('#subscriptionError').hidden = true;
@@ -353,6 +401,17 @@ async function refreshAddendumData() {
     qs('#activityTrendScope').textContent = 'Daily query cost unavailable';
     qs('#activityError').hidden = false;
     qs('#activityError').textContent = `Property activity unavailable: ${activityResult.reason.message}`;
+  }
+  if (amplitudeResult.status === 'fulfilled') {
+    qs('#amplitudeError').hidden = true;
+    renderAmplitude(amplitudeResult.value);
+  } else {
+    ['#latestDau','#averageDau','#peakDau','#totalDownloads','#androidDownloads','#iosDownloads'].forEach(id => qs(id).textContent = '—');
+    qs('#dauChart').innerHTML = '';
+    qs('#downloadsChart').innerHTML = '';
+    qs('#amplitudeScopeNote').textContent = '';
+    qs('#amplitudeError').hidden = false;
+    qs('#amplitudeError').textContent = `App analytics unavailable: ${amplitudeResult.reason.message}`;
   }
   await loadRoster();
 }
