@@ -57,6 +57,12 @@ async function startDashboard() {
   unlockDashboard();
   await loadCities().catch(() => {});
   await refresh();
+  scrollToCurrentSection();
+}
+
+function scrollToCurrentSection() {
+  const target = window.location.hash && document.querySelector(window.location.hash);
+  if (target) target.scrollIntoView({ block: 'start' });
 }
 async function loadCities() {
   const cities = await api('/filters/cities');
@@ -341,6 +347,7 @@ qs('#loginForm').addEventListener('submit', async event => {
     unlockDashboard();
     await loadCities().catch(() => {});
     await refresh();
+    scrollToCurrentSection();
   } catch (error) {
     qs('#loginError').textContent = error.message;
   } finally {
