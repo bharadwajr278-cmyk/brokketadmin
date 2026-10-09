@@ -331,6 +331,10 @@ function renderDauChart(points = []) {
 }
 
 function renderAmplitude(data) {
+  qs('#liveUsers').textContent = data.liveUsersAvailable ? fmt(data.liveUsers) : '—';
+  qs('#liveUsersMeta').textContent = data.liveUsersAvailable
+    ? `Active in latest 5-minute interval${data.liveUsersAsOf ? ` · ${data.liveUsersAsOf}` : ''}`
+    : 'Real-time source unavailable';
   qs('#latestDau').textContent = fmt(data.latestDau);
   qs('#averageDau').textContent = fmt(data.averageDau);
   qs('#peakDau').textContent = fmt(data.peakDau);
@@ -455,7 +459,8 @@ async function refreshAddendumData() {
   if (amplitudeResult.status === 'fulfilled') {
     renderAmplitude(amplitudeResult.value);
   } else {
-    ['#latestDau','#averageDau','#peakDau','#totalDownloads','#androidDownloads','#iosDownloads'].forEach(id => qs(id).textContent = '—');
+    ['#liveUsers','#latestDau','#averageDau','#peakDau','#totalDownloads','#androidDownloads','#iosDownloads'].forEach(id => qs(id).textContent = '—');
+    qs('#liveUsersMeta').textContent = 'Real-time source unavailable';
     qs('#dauChart').innerHTML = '';
     qs('#downloadsChart').innerHTML = '';
     qs('#amplitudeScopeNote').textContent = '';

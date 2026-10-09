@@ -1255,7 +1255,7 @@ main {
 }
 
 .analytics-kpis.dau-only {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .analytics-kpi {
@@ -1303,6 +1303,27 @@ main {
   border-color: var(--ink);
   background: linear-gradient(135deg, #071613 0%, #102d27 100%);
   color: #fff;
+}
+
+.analytics-kpi.live-now {
+  border-color: #b9f13b;
+  background: linear-gradient(135deg, #dfff8d 0%, #b9f13b 100%);
+  color: var(--ink);
+  box-shadow: 0 14px 34px rgba(151, 205, 35, .22);
+}
+
+.analytics-kpi.live-now span,
+.analytics-kpi.live-now small { color: #405329; }
+.analytics-kpi.live-now strong { font-size: 32px; color: #071613; }
+.analytics-kpi.live-now .live-mini-dot {
+  background: #087f5b;
+  box-shadow: 0 0 0 4px rgba(8, 127, 91, .15);
+  animation: livePulse 1.8s ease-out infinite;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(8, 127, 91, .35); }
+  70%, 100% { box-shadow: 0 0 0 8px rgba(8, 127, 91, 0); }
 }
 
 .analytics-kpi.dark span,
