@@ -81,10 +81,15 @@ module.exports = async function handler(request, response) {
     const realtimeData = realtimeResponse.ok ? (realtimePayload?.data || {}) : {};
     const todayIndex = (realtimeData.seriesLabels || []).findIndex(label => /today/i.test(String(label)));
     const todaySeries = realtimeData.series?.[todayIndex >= 0 ? todayIndex : 0] || [];
-    const currentRealtimeIndex = todaySeries.findIndex(value => value !== null && value !== undefined && Number.isFinite(Number(value)));
-    const liveUsersAvailable = realtimeResponse.ok && currentRealtimeIndex >= 0;
-    const liveUsers = liveUsersAvailable ? Number(todaySeries[currentRealtimeIndex]) : null;
-    const liveUsersAsOf = liveUsersAvailable ? (realtimeData.xValues?.[currentRealtimeIndex] || '') : '';
+    // The real-time response starts with the still-open five-minute bucket. That
+    // bucket is commonly zero until Amplitude finalizes it, while Live Events
+    // reports the latest completed interval. Skip index 0 so both surfaces use
+    // the same finalized window instead of showing a false zero.
+    const completedRealtimeIndex = todaySeries.findIndex((value, index) =>
+      index > 0 && value !== null && value !== undefined && Number.isFinite(Number(value)));
+    const liveUsersAvailable = realtimeResponse.ok && completedRealtimeIndex >= 0;
+    const liveUsers = liveUsersAvailable ? Number(todaySeries[completedRealtimeIndex]) : null;
+    const liveUsersAsOf = liveUsersAvailable ? (realtimeData.xValues?.[completedRealtimeIndex] || '') : '';
     if (!realtimeResponse.ok) console.warn(`Amplitude realtime unavailable: status=${realtimeResponse.status}`);
     return response.status(200).json({
       success: true,

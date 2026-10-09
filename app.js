@@ -333,7 +333,7 @@ function renderDauChart(points = []) {
 function renderAmplitude(data) {
   qs('#liveUsers').textContent = data.liveUsersAvailable ? fmt(data.liveUsers) : '—';
   qs('#liveUsersMeta').textContent = data.liveUsersAvailable
-    ? `Active in latest 5-minute interval${data.liveUsersAsOf ? ` · ${data.liveUsersAsOf}` : ''}`
+    ? 'Latest completed 5-minute interval · refreshes every 5m'
     : 'Real-time source unavailable';
   qs('#latestDau').textContent = fmt(data.latestDau);
   qs('#averageDau').textContent = fmt(data.averageDau);
