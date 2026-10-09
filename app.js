@@ -1,6 +1,7 @@
 const API = '/api/proxy';
-const state = { data: null, live: false, groupBy: 'day', cityNames: {} };
+const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '' };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
+const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
 const qs = s => document.querySelector(s);
 
 function dateRange() {
@@ -11,14 +12,14 @@ function dateRange() {
   const iso = d => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   return { fromDate: iso(from), toDate: iso(to) };
 }
-function params(extra = {}) {
-  const p = new URLSearchParams({ ...dateRange(), ...extra });
+function params(extra = {}, options = {}) {
+  const p = new URLSearchParams(options.dates === false ? extra : { ...dateRange(), ...extra });
   const city = qs('#citySelect').value;
-  if (city) p.set('cityCode', city);
+  if (city && options.city !== false) p.set('cityCode', city);
   return p;
 }
-async function api(path, extra = {}) {
-  const query = params(extra);
+async function api(path, extra = {}, options = {}) {
+  const query = params(extra, options);
   query.set('route', path.replace(/^\/+/, ''));
   const response = await fetch(`${API}?${query}`, {
     signal: AbortSignal.timeout(15000),
@@ -110,6 +111,104 @@ function chart(svgId, a = [], b = null, compact = false) {
   const labels = a.map((_,i) => i % step === 0 ? `<text class="axis-label" text-anchor="middle" x="${p+i*(w-p*2)/Math.max(1,a.length-1)}" y="${h-5}">${i+1}</text>` : '').join('');
   svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}<path class="${b?'area-a':'area-like'}" d="${area(a)}"/><path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${b?`<path class="line-b" d="${path(b)}"/>`:''}${labels}`;
 }
+
+function renderRevenueChart(points = []) {
+  const svg = qs('#revenueChart'), w = 760, h = 210, p = 34;
+  if (!points.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No revenue activity in this range</text>';
+    return;
+  }
+  const values = points.map(point => Number(point.amount) || 0);
+  const min = Math.min(0, ...values), max = Math.max(0, ...values), range = Math.max(1, max - min);
+  const y = value => p + (max - value) / range * (h - p * 2);
+  const baseline = y(0), slot = (w - p * 2) / values.length, barWidth = Math.max(5, Math.min(28, slot * 0.58));
+  const bars = values.map((value, index) => {
+    const top = Math.min(y(value), baseline), height = Math.max(2, Math.abs(y(value) - baseline));
+    return `<rect class="revenue-bar ${value < 0 ? 'negative' : ''}" x="${(p + index * slot + (slot - barWidth) / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${height.toFixed(1)}" rx="4"><title>${points[index].label}: ${money(value)}</title></rect>`;
+  }).join('');
+  const step = Math.max(1, Math.ceil(points.length / 5));
+  const labels = points.map((point,index) => index % step === 0 ? `<text class="axis-label" text-anchor="middle" x="${(p + index * slot + slot / 2).toFixed(1)}" y="${h - 6}">${point.label.slice(5)}</text>` : '').join('');
+  svg.innerHTML = `<line class="grid-line" x1="${p}" y1="${baseline}" x2="${w-p}" y2="${baseline}"/>${bars}${labels}`;
+}
+
+function renderSubscriptions(data) {
+  const values = [
+    ['#activeSubscribers', data.totalActiveSubscribers], ['#activeIncludingTrial', data.totalActiveIncludingTrial],
+    ['#autopayOn', data.autopayOnCount], ['#autopayOff', data.autopayOffCount],
+    ['#newPurchases', data.newPurchasesInRange], ['#renewals', data.renewalsInRange]
+  ];
+  values.forEach(([id, value]) => qs(id).textContent = fmt(value));
+  qs('#revenueInRange').textContent = money(data.revenueInRange);
+  qs('#revenueAllTime').textContent = money(data.totalRevenueAllTime);
+  qs('#planBreakdown').innerHTML = (data.byPlan || []).length ? data.byPlan.map(plan => `<div class="plan-row"><span><b>${plan.planName || plan.planCode}</b><small>${plan.planCode}</small></span><span><b>${fmt(plan.activeSubscribers)}</b><small>${money(plan.totalRevenueAllTime)}</small></span></div>`).join('') : '<p class="section-note">No active plan data</p>';
+  qs('#autopayStatus').innerHTML = Object.entries(data.byAutopayStatus || {}).map(([status, count]) => `<span><i></i>${status}<b>${fmt(count)}</b></span>`).join('');
+  qs('#subscriptionScopeNote').textContent = data.scopeNote || '';
+}
+
+function renderContent(data) {
+  qs('#feedPosts').textContent = fmt(data.feedPostsInRange);
+  qs('#picturePosts').textContent = fmt(data.picturesUploadedInRange);
+  qs('#contentCreators').textContent = fmt(data.uniqueContentCreatorsInRange);
+  qs('#contentScopeNote').textContent = data.scopeNote || '';
+}
+
+function formatDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+}
+
+function renderRoster(data) {
+  qs('#rosterRows').innerHTML = (data.content || []).length ? data.content.map(item => `<div class="roster-row" role="row"><span><b>${item.fullName || 'Unnamed subscriber'}</b><small>•••• ${String(item.username || '').slice(-4)}</small></span><span><b>${item.planName || item.planCode || '—'}</b><small>${item.trial ? 'Trial' : item.planCode || ''}</small></span><span>${item.subscriptionPlanType || '—'}</span><span><i class="status-pill ${item.autopayOn ? 'on' : 'off'}">${item.autopayOn ? 'ON' : 'OFF'}</i></span><span>${item.recurringStatus || item.displayStatus || 'One-time'}</span><span>${formatDate(item.expiryDate)}</span></div>`).join('') : '<div class="roster-empty">No active subscribers match this filter.</div>';
+  qs('#rosterCount').textContent = `${fmt(data.totalElements)} subscribers`;
+  qs('#rosterPage').textContent = `Page ${Number(data.page) + 1} of ${Math.max(1, Number(data.totalPages) || 1)}`;
+  qs('#rosterPrev').disabled = Number(data.page) <= 0;
+  qs('#rosterNext').disabled = Number(data.page) + 1 >= Number(data.totalPages);
+}
+
+async function loadRoster() {
+  try {
+    const data = await api('/subscriptions/roster', { autopay: state.rosterAutopay, page: state.rosterPage, size: 10 }, { dates: false, city: false });
+    renderRoster(data);
+  } catch (error) {
+    qs('#rosterRows').innerHTML = `<div class="roster-empty">${error.message}</div>`;
+    qs('#rosterCount').textContent = 'Roster unavailable';
+    qs('#rosterPage').textContent = '—';
+    qs('#rosterPrev').disabled = true;
+    qs('#rosterNext').disabled = true;
+  }
+}
+
+async function refreshAddendumData() {
+  const [overviewResult, trendResult, contentResult] = await Promise.allSettled([
+    api('/subscriptions/overview', {}, { city: false }),
+    api('/subscriptions/revenue-trend', { groupBy: state.groupBy }, { city: false }),
+    api('/content/overview', {}, { city: false })
+  ]);
+  if (overviewResult.status === 'fulfilled') {
+    qs('#subscriptionError').hidden = true;
+    renderSubscriptions(overviewResult.value);
+  } else {
+    ['#activeSubscribers','#activeIncludingTrial','#autopayOn','#autopayOff','#revenueInRange','#revenueAllTime','#newPurchases','#renewals'].forEach(id => qs(id).textContent = '—');
+    qs('#planBreakdown').innerHTML = '';
+    qs('#autopayStatus').innerHTML = '';
+    qs('#subscriptionScopeNote').textContent = '';
+    qs('#subscriptionError').hidden = false;
+    qs('#subscriptionError').textContent = `Subscription metrics unavailable: ${overviewResult.reason.message}`;
+  }
+  if (trendResult.status === 'fulfilled') renderRevenueChart(trendResult.value);
+  else renderRevenueChart([]);
+  if (contentResult.status === 'fulfilled') {
+    qs('#contentError').hidden = true;
+    renderContent(contentResult.value);
+  } else {
+    ['#feedPosts','#picturePosts','#contentCreators'].forEach(id => qs(id).textContent = '—');
+    qs('#contentScopeNote').textContent = '';
+    qs('#contentError').hidden = false;
+    qs('#contentError').textContent = `Content metrics unavailable: ${contentResult.reason.message}`;
+  }
+  await loadRoster();
+}
 function renderBars(values = []) {
   const el = qs('#listingBars');
   if (!values.length) { el.innerHTML = '<p class="section-note">No activity in this range</p>'; return; }
@@ -193,6 +292,7 @@ async function refresh() {
     clearDashboard(error.message);
     showToast(error.message);
   }
+  await refreshAddendumData();
   const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});
   qs('#lastUpdated').textContent=`Updated ${now} · Asia/Kolkata`;
   btn.classList.remove('loading');
@@ -206,6 +306,9 @@ function showToast(msg) {
 }
 document.querySelectorAll('.segmented button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.segmented button').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.groupBy=b.dataset.group;refresh()}));
 ['#periodSelect','#citySelect','#typeSelect'].forEach(id=>qs(id).addEventListener('change',refresh));
+qs('#autopayFilter').addEventListener('change', event => { state.rosterAutopay = event.target.value; state.rosterPage = 0; loadRoster(); });
+qs('#rosterPrev').addEventListener('click', () => { if (state.rosterPage > 0) { state.rosterPage -= 1; loadRoster(); } });
+qs('#rosterNext').addEventListener('click', () => { state.rosterPage += 1; loadRoster(); });
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));

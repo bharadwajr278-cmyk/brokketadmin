@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261008-4" />
+  <link rel="stylesheet" href="styles.css?v=20261009-1" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -35,6 +35,8 @@
         <a class="nav-item" href="#growth"><span>↗</span> Growth</a>
         <a class="nav-item" href="#supply"><span>▱</span> Supply</a>
         <a class="nav-item" href="#demand"><span>♡</span> Demand</a>
+        <a class="nav-item" href="#revenue"><span>₹</span> Revenue</a>
+        <a class="nav-item" href="#content"><span>▦</span> Content</a>
         <a class="nav-item" href="#geography"><span>⌖</span> Geography</a>
       </nav>
       <div class="sidebar-foot">
@@ -126,8 +128,52 @@
           </div>
         </section>
 
+        <section id="revenue" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">04 · SUBSCRIPTIONS</p><h2>Revenue & subscriptions</h2></div><p class="section-note">Net revenue after completed refunds</p></div>
+          <div class="section-error" id="subscriptionError" hidden></div>
+          <div class="subscription-kpis">
+            <article class="subscription-kpi dark"><span>Active paid</span><strong id="activeSubscribers">—</strong><small>excluding trials</small></article>
+            <article class="subscription-kpi"><span>Including trials</span><strong id="activeIncludingTrial">—</strong><small>active entitlements</small></article>
+            <article class="subscription-kpi"><span>Autopay on</span><strong id="autopayOn">—</strong><small>active mandates</small></article>
+            <article class="subscription-kpi"><span>Autopay off</span><strong id="autopayOff">—</strong><small>not churned</small></article>
+            <article class="subscription-kpi"><span>Revenue in range</span><strong id="revenueInRange">—</strong><small>net of refunds</small></article>
+            <article class="subscription-kpi"><span>All-time revenue</span><strong id="revenueAllTime">—</strong><small>ledger total</small></article>
+          </div>
+          <div class="subscription-layout">
+            <article class="panel revenue-chart-panel">
+              <div class="panel-head"><div><h3>Net revenue trend</h3><p>Purchases and renewals minus completed refunds</p></div><div class="revenue-events"><span><b id="newPurchases">—</b> purchases</span><span><b id="renewals">—</b> renewals</span></div></div>
+              <div class="chart-wrap compact"><svg id="revenueChart" viewBox="0 0 760 210" role="img" aria-label="Subscription net revenue trend"></svg></div>
+            </article>
+            <article class="panel plan-panel">
+              <div class="panel-head"><div><h3>Plan & mandate mix</h3><p>Active subscribers and autopay status</p></div></div>
+              <div class="plan-breakdown" id="planBreakdown"></div>
+              <div class="autopay-status" id="autopayStatus"></div>
+            </article>
+          </div>
+          <article class="panel roster-panel">
+            <div class="panel-head"><div><h3>Active subscriber roster</h3><p>Who has which plan and whether autopay is active</p></div><label class="mini-filter"><span>Autopay</span><select id="autopayFilter"><option value="">Everyone</option><option value="on">On</option><option value="off">Off</option></select></label></div>
+            <div class="roster-table" role="table" aria-label="Active subscriber roster">
+              <div class="roster-row roster-head" role="row"><span>Subscriber</span><span>Plan</span><span>Cycle</span><span>Autopay</span><span>Status</span><span>Expires</span></div>
+              <div id="rosterRows"></div>
+            </div>
+            <div class="roster-footer"><span id="rosterCount">—</span><div><button id="rosterPrev" type="button">Previous</button><span id="rosterPage">—</span><button id="rosterNext" type="button">Next</button></div></div>
+          </article>
+          <p class="scope-note" id="subscriptionScopeNote"></p>
+        </section>
+
+        <section id="content" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">05 · CONTENT</p><h2>Feed & picture activity</h2></div><p class="section-note">Active feed content in the selected period</p></div>
+          <div class="section-error" id="contentError" hidden></div>
+          <div class="content-kpis">
+            <article class="content-kpi"><span class="metric-icon">▦</span><div><small>Feed posts</small><strong id="feedPosts">—</strong><p>Active posts in range</p></div></article>
+            <article class="content-kpi featured-content"><span class="metric-icon">▧</span><div><small>Picture posts</small><strong id="picturePosts">—</strong><p>Posts containing an image</p></div></article>
+            <article class="content-kpi"><span class="metric-icon">◎</span><div><small>Unique creators</small><strong id="contentCreators">—</strong><p>Distinct publishers</p></div></article>
+          </div>
+          <p class="scope-note" id="contentScopeNote"></p>
+        </section>
+
         <section id="geography" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">04 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Full-funnel comparison by city</p></div>
+          <div class="section-heading"><div><p class="eyebrow">06 · GEOGRAPHY</p><h2>Market performance</h2></div><p class="section-note">Full-funnel comparison by city</p></div>
           <article class="panel geography-panel">
             <div class="city-table" role="table" aria-label="City performance">
               <div class="city-row city-head" role="row"><span>Market</span><span>New users</span><span>Logins</span><span>Listings</span><span>Deal-card likes</span><span>Momentum</span></div>
@@ -142,6 +188,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261008-4"></script>
+  <script src="app.js?v=20261009-1"></script>
 </body>
 </html>

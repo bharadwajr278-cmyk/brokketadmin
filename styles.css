@@ -989,6 +989,324 @@ main {
 .momentum b {
   font-size: 10px;
 }
+
+.section-error {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #f0c7c4;
+  border-radius: 12px;
+  background: #fff6f5;
+  color: #a23e38;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.subscription-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.subscription-kpi {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.subscription-kpi.dark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.subscription-kpi span,
+.subscription-kpi small {
+  display: block;
+  overflow: hidden;
+  color: #7b8984;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-kpi.dark span,
+.subscription-kpi.dark small {
+  color: #9eafaa;
+}
+
+.subscription-kpi strong {
+  display: block;
+  overflow: hidden;
+  margin: 9px 0 10px;
+  font: 800 22px/1 "Manrope", sans-serif;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subscription-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.revenue-chart-panel,
+.plan-panel,
+.roster-panel {
+  padding: 20px;
+}
+
+.revenue-events {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.revenue-events b {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.revenue-bar {
+  fill: var(--lime-2);
+}
+
+.revenue-bar.negative {
+  fill: #df716b;
+}
+
+.plan-breakdown {
+  display: grid;
+  gap: 8px;
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #f4f7f4;
+}
+
+.plan-row span:last-child {
+  text-align: right;
+}
+
+.plan-row b,
+.plan-row small {
+  display: block;
+}
+
+.plan-row b {
+  font-size: 11px;
+}
+
+.plan-row small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.autopay-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.autopay-status span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #65736e;
+  font-size: 8px;
+}
+
+.autopay-status i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lime-2);
+}
+
+.autopay-status b {
+  color: var(--ink);
+}
+
+.mini-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.mini-filter select {
+  min-width: 110px;
+  padding: 9px 30px 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7faf7;
+  color: var(--ink);
+  font: 700 11px "DM Sans", sans-serif;
+}
+
+.roster-table {
+  min-width: 760px;
+  overflow: hidden;
+}
+
+.roster-panel {
+  overflow-x: auto;
+}
+
+.roster-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.35fr 0.8fr 0.7fr 0.9fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 4px;
+  border-bottom: 1px solid #edf0ed;
+  font-size: 11px;
+}
+
+.roster-row > span b,
+.roster-row > span small {
+  display: block;
+}
+
+.roster-row > span small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.roster-head {
+  color: #899590;
+  font: 700 9px "Manrope", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.status-pill.on {
+  background: #e9f8c8;
+  color: #416108;
+}
+
+.status-pill.off {
+  background: #eef1ef;
+  color: #697570;
+}
+
+.roster-empty {
+  padding: 28px 4px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.roster-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.roster-footer div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.roster-footer button {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font: 700 9px "DM Sans", sans-serif;
+}
+
+.roster-footer button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.scope-note {
+  margin: 10px 4px 0;
+  color: #788680;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.content-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.content-kpi {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.content-kpi.featured-content {
+  border-color: #dad2ff;
+  background: linear-gradient(135deg, #f4f0ff, #fff);
+}
+
+.content-kpi small,
+.content-kpi strong,
+.content-kpi p {
+  display: block;
+}
+
+.content-kpi small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.content-kpi strong {
+  margin: 5px 0;
+  font: 800 30px/1 "Manrope", sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.content-kpi p {
+  margin: 0;
+  color: #899590;
+  font-size: 10px;
+}
+
 footer {
   display: flex;
   justify-content: space-between;
@@ -1034,6 +1352,9 @@ footer {
   .leaderboard {
     grid-template-columns: 1fr 1fr;
   }
+  .subscription-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 860px) {
   .sidebar {
@@ -1074,7 +1395,8 @@ footer {
     padding: 20px;
   }
   .growth-layout,
-  .demand-layout {
+  .demand-layout,
+  .subscription-layout {
     grid-template-columns: 1fr;
   }
   .score-stack {
@@ -1125,8 +1447,13 @@ footer {
   }
   .growth-layout,
   .supply-layout,
-  .demand-layout {
+  .demand-layout,
+  .subscription-layout {
     display: block;
+  }
+  .subscription-kpis,
+  .content-kpis {
+    grid-template-columns: 1fr 1fr;
   }
   .score-stack {
     grid-template-columns: 1fr;

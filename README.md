@@ -1,6 +1,12 @@
 # Brokket CEO Dashboard
 
-Production-ready Node.js dashboard using the live Brokket CEO Dashboard API.
+Production-ready Node.js dashboard using the live Brokket CEO Dashboard API v1.1.0.
+
+The dashboard covers the original 15 growth, login, listing, likes and city endpoints plus the v1.1.0 subscription and content additions:
+
+- subscription overview and net-revenue trend
+- paginated active-subscriber roster with autopay filtering
+- feed posts, picture-post approximation and unique content creators
 
 Configure these values in the production host's environment, not in Git:
 
