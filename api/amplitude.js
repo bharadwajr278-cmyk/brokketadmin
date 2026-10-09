@@ -33,7 +33,15 @@ module.exports = async function handler(request, response) {
   const common = { start: amplitudeDate(fromDate), end: amplitudeDate(toDate), i: '1' };
   const usersUrl = new URL('https://amplitude.com/api/2/users');
   Object.entries({ ...common, m: 'active' }).forEach(([key, value]) => usersUrl.searchParams.set(key, value));
-  const realtimeUrl = new URL('https://amplitude.com/api/2/realtime');
+  const currentUtcHour = new Date().toISOString().replace(/[-:]/g, '').slice(0, 11);
+  const liveUsersUrl = new URL('https://amplitude.com/api/2/events/segmentation');
+  Object.entries({
+    e: JSON.stringify({ event_type: '_active' }),
+    m: 'uniques',
+    i: '-900000',
+    start: currentUtcHour,
+    end: currentUtcHour,
+  }).forEach(([key, value]) => liveUsersUrl.searchParams.set(key, value));
   const downloadsUrl = new URL('https://amplitude.com/api/2/segmentation');
   Object.entries({
     ...common,
@@ -44,14 +52,14 @@ module.exports = async function handler(request, response) {
 
   try {
     const headers = { Accept: 'application/json', Authorization: authorization };
-    const [usersResponse, downloadsResponse, realtimeResponse] = await Promise.all([
+    const [usersResponse, downloadsResponse, liveUsersResponse] = await Promise.all([
       fetch(usersUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
       fetch(downloadsUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
-      fetch(realtimeUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
+      fetch(liveUsersUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
     ]);
-    const [usersPayload, downloadsPayload, realtimePayload] = await Promise.all([
+    const [usersPayload, downloadsPayload, liveUsersPayload] = await Promise.all([
       usersResponse.json().catch(() => null), downloadsResponse.json().catch(() => null),
-      realtimeResponse.json().catch(() => null),
+      liveUsersResponse.json().catch(() => null),
     ]);
     if (!usersResponse.ok) {
       console.warn(`Amplitude upstream status: users=${usersResponse.status}, downloads=${downloadsResponse.status}`);
@@ -78,19 +86,17 @@ module.exports = async function handler(request, response) {
     const allValues = dates.map((_, index) => platformSeries.reduce((total, item) => total + (Number(item.values[index]) || 0), 0));
     const sum = values => values.reduce((total, value) => total + (Number(value) || 0), 0);
     const dauValues = dau.map(item => item.count);
-    const realtimeData = realtimeResponse.ok ? (realtimePayload?.data || {}) : {};
-    const todayIndex = (realtimeData.seriesLabels || []).findIndex(label => /today/i.test(String(label)));
-    const todaySeries = realtimeData.series?.[todayIndex >= 0 ? todayIndex : 0] || [];
-    // The real-time response starts with the still-open five-minute bucket. That
-    // bucket is commonly zero until Amplitude finalizes it, while Live Events
-    // reports the latest completed interval. Skip index 0 so both surfaces use
-    // the same finalized window instead of showing a false zero.
-    const completedRealtimeIndex = todaySeries.findIndex((value, index) =>
-      index > 0 && value !== null && value !== undefined && Number.isFinite(Number(value)));
-    const liveUsersAvailable = realtimeResponse.ok && completedRealtimeIndex >= 0;
-    const liveUsers = liveUsersAvailable ? Number(todaySeries[completedRealtimeIndex]) : null;
-    const liveUsersAsOf = liveUsersAvailable ? (realtimeData.xValues?.[completedRealtimeIndex] || '') : '';
-    if (!realtimeResponse.ok) console.warn(`Amplitude realtime unavailable: status=${realtimeResponse.status}`);
+    const liveData = liveUsersResponse.ok ? (liveUsersPayload?.data || {}) : {};
+    const liveSeries = liveData.series?.[0] || [];
+    let latestLiveIndex = liveSeries.length - 1;
+    while (latestLiveIndex >= 0 && (
+      liveSeries[latestLiveIndex] === null || liveSeries[latestLiveIndex] === undefined ||
+      !Number.isFinite(Number(liveSeries[latestLiveIndex]))
+    )) latestLiveIndex -= 1;
+    const liveUsersAvailable = liveUsersResponse.ok && latestLiveIndex >= 0;
+    const liveUsers = liveUsersAvailable ? Number(liveSeries[latestLiveIndex]) : null;
+    const liveUsersAsOf = liveUsersAvailable ? (liveData.xValues?.[latestLiveIndex] || '') : '';
+    if (!liveUsersResponse.ok) console.warn(`Amplitude live users unavailable: status=${liveUsersResponse.status}`);
     return response.status(200).json({
       success: true,
       data: {
@@ -98,7 +104,8 @@ module.exports = async function handler(request, response) {
         liveUsers,
         liveUsersAsOf,
         liveUsersAvailable,
-        liveUsersMessage: liveUsersAvailable ? '' : `Amplitude real-time users are unavailable (${realtimeResponse.status}).`,
+        liveWindowMinutes: 15,
+        liveUsersMessage: liveUsersAvailable ? '' : `Amplitude live users are unavailable (${liveUsersResponse.status}).`,
         latestDau: dauValues.at(-1) || 0,
         averageDau: dauValues.length ? Math.round(sum(dauValues) / dauValues.length) : 0,
         peakDau: Math.max(0, ...dauValues),
