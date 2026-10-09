@@ -81,7 +81,15 @@ async function startDashboard() {
   unlockDashboard();
   await loadCities().catch(() => {});
   await refresh();
+  scheduleAutoRefresh();
   scrollToCurrentSection();
+}
+
+function scheduleAutoRefresh() {
+  window.clearInterval(window.dashboardRefreshTimer);
+  window.dashboardRefreshTimer = window.setInterval(() => {
+    if (document.body.classList.contains('authenticated') && !qs('#refreshBtn').classList.contains('loading')) refresh();
+  }, 5 * 60 * 1000);
 }
 
 function scrollToCurrentSection() {
@@ -125,24 +133,58 @@ function groupCityRows(rows = []) {
   }
   return { grouped, excluded };
 }
-function chart(svgId, a = [], b = null, compact = false) {
+function rangeBuckets() {
+  const { fromDate, toDate } = dateRange();
+  const buckets = [];
+  if (state.groupBy === 'month') {
+    const cursor = new Date(`${fromDate.slice(0, 7)}-01T00:00:00Z`);
+    const end = toDate.slice(0, 7);
+    while (cursor.toISOString().slice(0, 7) <= end) {
+      buckets.push(cursor.toISOString().slice(0, 7));
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+  } else {
+    const cursor = new Date(`${fromDate}T00:00:00Z`);
+    const end = new Date(`${toDate}T00:00:00Z`);
+    while (cursor <= end) {
+      buckets.push(cursor.toISOString().slice(0, 10));
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+  return buckets;
+}
+
+function bucketLabel(label) {
+  if (state.groupBy === 'month') {
+    return new Date(`${label}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  }
+  return new Date(`${label}T00:00:00Z`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+}
+
+function chart(svgId, aRows = [], bRows = null, compact = false) {
   const svg = qs(svgId), h = compact ? 180 : 260, w = 760, p = 30;
-  if (!a.length || (b && !b.length)) {
+  if (!aRows.length && (!bRows || !bRows.length)) {
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No activity in this range</text>';
     return;
   }
+  const domain = rangeBuckets();
+  const values = rows => {
+    const byLabel = new Map(rows.map(row => [row.label, Number(row.count) || 0]));
+    return domain.map(label => byLabel.get(label) || 0);
+  };
+  const a = values(aRows), b = bRows ? values(bRows) : null;
   const all = b ? [...a, ...b] : a;
   const max = Math.max(1, ...all) * 1.12;
   const pts = vals => vals.map((v, i) => [p + i * (w - p * 2) / Math.max(1, vals.length - 1), h - p - (v / max) * (h - p * 2)]);
   const path = vals => pts(vals).map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
   const area = vals => `${path(vals)} L${w-p},${h-p} L${p},${h-p} Z`;
   const grids = [0,.25,.5,.75,1].map(v => `<line class="grid-line" x1="${p}" y1="${p+v*(h-p*2)}" x2="${w-p}" y2="${p+v*(h-p*2)}"/><text class="axis-label" x="2" y="${p+v*(h-p*2)+4}">${Math.round(max*(1-v))}</text>`).join('');
-  const step = Math.max(1, Math.ceil(a.length / 5));
-  const labels = a.map((_,i) => i % step === 0 ? `<text class="axis-label" text-anchor="middle" x="${p+i*(w-p*2)/Math.max(1,a.length-1)}" y="${h-5}">${i+1}</text>` : '').join('');
-  const showCounts = Boolean(b) && a.length <= 12;
+  const step = Math.max(1, Math.ceil(domain.length / 5));
+  const labels = domain.map((label,i) => i % step === 0 || i === domain.length - 1 ? `<text class="axis-label" text-anchor="middle" x="${p+i*(w-p*2)/Math.max(1,domain.length-1)}" y="${h-5}">${bucketLabel(label)}</text>` : '').join('');
+  const showCounts = Boolean(b) && domain.length <= 12;
   const points = (vals, series, name, offset) => pts(vals).map(([x,y],i) => {
     const labelY = Math.max(12, Math.min(h - 10, y + offset));
-    return `<g><circle class="chart-point ${series}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${name}: ${fmt(vals[i])}</title></circle>${showCounts ? `<text class="chart-value ${series}" text-anchor="middle" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}">${fmt(vals[i])}</text>` : ''}</g>`;
+    return `<g><circle class="chart-point ${series}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${bucketLabel(domain[i])} · ${name}: ${fmt(vals[i])}</title></circle>${showCounts ? `<text class="chart-value ${series}" text-anchor="middle" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}">${fmt(vals[i])}</text>` : ''}</g>`;
   }).join('');
   svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}<path class="${b?'area-a':'area-like'}" d="${area(a)}"/><path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${b?`<path class="line-b" d="${path(b)}"/>${points(a,'registration','Registrations',-10)}${points(b,'login','Logins',16)}`:''}${labels}`;
 }
@@ -170,6 +212,7 @@ function renderSubscriptions(data) {
   const values = [
     ['#activeSubscribers', data.totalActiveSubscribers], ['#activeIncludingTrial', data.totalActiveIncludingTrial],
     ['#autopayOn', data.autopayOnCount], ['#autopayOff', data.autopayOffCount],
+    ['#uniquePayers', data.totalUniquePayingSubscribersAllTime], ['#subscriptionsSold', data.totalSubscriptionsSoldAllTime],
     ['#newPurchases', data.newPurchasesInRange], ['#renewals', data.renewalsInRange]
   ];
   values.forEach(([id, value]) => qs(id).textContent = fmt(value));
@@ -177,7 +220,13 @@ function renderSubscriptions(data) {
   qs('#revenueAllTime').textContent = money(data.totalRevenueAllTime);
   qs('#planBreakdown').innerHTML = (data.byPlan || []).length ? data.byPlan.map(plan => `<div class="plan-row"><span><b>${plan.planName || plan.planCode}</b><small>${plan.planCode}</small></span><span><b>${fmt(plan.activeSubscribers)}</b><small>${money(plan.totalRevenueAllTime)}</small></span></div>`).join('') : '<p class="section-note">No active plan data</p>';
   qs('#autopayStatus').innerHTML = Object.entries(data.byAutopayStatus || {}).map(([status, count]) => `<span><i></i>${status}<b>${fmt(count)}</b></span>`).join('');
-  qs('#subscriptionScopeNote').textContent = data.scopeNote || '';
+  const paidPlanTotal = (data.byPlan || []).filter(plan => String(plan.planCode).toUpperCase() !== 'TRIAL').reduce((total, plan) => total + (Number(plan.activeSubscribers) || 0), 0);
+  const mismatch = paidPlanTotal !== Number(data.totalActiveSubscribers);
+  qs('#subscriptionError').hidden = !mismatch;
+  qs('#subscriptionError').textContent = mismatch
+    ? `Data quality warning: Active paid is ${fmt(data.totalActiveSubscribers)}, but non-trial plan entitlements total ${fmt(paidPlanTotal)}. Treat plan counts as entitlements until the backend definitions are reconciled.`
+    : '';
+  qs('#subscriptionScopeNote').textContent = `All-city metric. ${data.scopeNote || ''}`;
 }
 
 function renderContent(data) {
@@ -224,7 +273,7 @@ async function refreshAddendumData() {
     qs('#subscriptionError').hidden = true;
     renderSubscriptions(overviewResult.value);
   } else {
-    ['#activeSubscribers','#activeIncludingTrial','#autopayOn','#autopayOff','#revenueInRange','#revenueAllTime','#newPurchases','#renewals'].forEach(id => qs(id).textContent = '—');
+    ['#activeSubscribers','#activeIncludingTrial','#autopayOn','#autopayOff','#uniquePayers','#subscriptionsSold','#revenueInRange','#revenueAllTime','#newPurchases','#renewals'].forEach(id => qs(id).textContent = '—');
     qs('#planBreakdown').innerHTML = '';
     qs('#autopayStatus').innerHTML = '';
     qs('#subscriptionScopeNote').textContent = '';
@@ -244,22 +293,28 @@ async function refreshAddendumData() {
   }
   await loadRoster();
 }
-function renderBars(values = []) {
+function renderBars(rows = []) {
   const el = qs('#listingBars');
-  if (!values.length) { el.innerHTML = '<p class="section-note">No activity in this range</p>'; return; }
+  if (!rows.length) { el.innerHTML = '<p class="section-note">No activity in this range</p>'; return; }
+  const recent = rows.slice(-10);
+  const values = recent.map(row => Number(row.count) || 0);
   const max = Math.max(1, ...values);
-  el.innerHTML = values.slice(-10).map((v,i) => `<div class="bar-unit" data-day="${i+1}"><span style="height:${Math.max(3,v/max*100)}%"></span><span style="height:${Math.max(2,v/max*58)}%"></span></div>`).join('');
+  el.innerHTML = recent.map((row,i) => `<div class="bar-unit" data-day="${bucketLabel(row.label)}"><span style="height:${Math.max(3,values[i]/max*100)}%" title="${bucketLabel(row.label)} · ${fmt(values[i])} listings"></span></div>`).join('');
 }
-function renderMix(obj = {}) {
-  const total = Object.values(obj).reduce((a,b) => a+b, 0), colors = ['#a8df2d','#64a8ff','#9b87ff','#ffad5b'];
-  if (!total) { qs('#mixTotal').textContent='0'; qs('#mixLegend').innerHTML=''; return; }
+function renderMix(obj = {}, expectedTotal = 0) {
+  const total = Object.values(obj).reduce((a,b) => a+b, 0), colors = ['#a8df2d','#64a8ff','#9b87ff','#ffad5b','#a6b0ac'];
+  if (!total) { qs('#mixTotal').textContent=fmt(expectedTotal); qs('#mixLegend').innerHTML=''; qs('#supplyDataNote').textContent='No classified listing activity in this range.'; return; }
   let acc = 0;
   const stops = Object.values(obj).map((v,i) => { const start=acc; acc+=v/total*100; return `${colors[i]} ${start}% ${acc}%`; });
   const lead = Object.entries(obj).sort((a,b)=>b[1]-a[1])[0];
   qs('#supplyDonut').style.background = `conic-gradient(${stops.join(',')})`;
   qs('#supplyDonut').innerHTML = `<div><strong>${Math.round(lead[1]/total*100)}%</strong><span>${lead[0]}</span></div>`;
   qs('#mixLegend').innerHTML = Object.entries(obj).map(([k,v],i) => `<div class="mix-item"><i style="background:${colors[i]}"></i><span>${k}</span><b>${fmt(v)}</b></div>`).join('');
-  qs('#mixTotal').textContent = fmt(total);
+  qs('#mixTotal').textContent = fmt(expectedTotal || total);
+  const unclassified = Number(obj.Unclassified) || 0;
+  qs('#supplyDataNote').textContent = unclassified
+    ? `${fmt(unclassified)} listings (${(unclassified / Math.max(1, expectedTotal) * 100).toFixed(1)}%) have no valid transaction type and are shown as Unclassified.`
+    : 'Transaction-type totals reconcile to the listing headline.';
 }
 function renderContributors(items = []) {
   qs('#leaderboard').innerHTML = items.length ? items.slice(0,5).map((x,i) => {
@@ -270,11 +325,13 @@ function renderContributors(items = []) {
 function renderCities(items = []) {
   qs('#cityRows').innerHTML = items.length ? items.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i><span class="city-label">${x.name}</span></span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
   const excluded = state.data?.excludedCities;
+  const totals = state.data?.cityTotals || {};
+  const coverage = (value, total) => `${fmt(value)} (${(value / Math.max(1, total) * 100).toFixed(1)}%)`;
   const parts = excluded ? [
-    excluded.users ? `${fmt(excluded.users)} users` : '',
-    excluded.logins ? `${fmt(excluded.logins)} logins` : '',
-    excluded.listings ? `${fmt(excluded.listings)} listings` : '',
-    excluded.likes ? `${fmt(excluded.likes)} likes` : ''
+    excluded.users ? `${coverage(excluded.users, totals.users)} users` : '',
+    excluded.logins ? `${coverage(excluded.logins, totals.logins)} logins` : '',
+    excluded.listings ? `${coverage(excluded.listings, totals.listings)} listings` : '',
+    excluded.likes ? `${coverage(excluded.likes, totals.likes)} likes` : ''
   ].filter(Boolean) : [];
   qs('#geoDataNote').textContent = parts.length
     ? `Data quality note: ${parts.join(', ')} without a valid city are excluded from this comparison.`
@@ -282,46 +339,55 @@ function renderCities(items = []) {
 }
 function render() {
   const d=state.data,o=d.overview;
-  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',o.activeUsersInRange],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',o.newLikesInRange],['#demandLikes',o.newLikesInRange],['#uniqueUsers',o.activeUsersInRange]].forEach(([id,v]) => qs(id).textContent=fmt(v));
-  qs('#registrationCount').textContent=fmt(d.registrations.reduce((total,value)=>total+(Number(value)||0),0));
-  qs('#loginCount').textContent=fmt(d.logins.reduce((total,value)=>total+(Number(value)||0),0));
+  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',d.uniqueActiveUsers],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',o.newLikesInRange],['#demandLikes',o.newLikesInRange],['#uniqueUsers',d.uniqueActiveUsers]].forEach(([id,v]) => qs(id).textContent=fmt(v));
+  qs('#registrationCount').textContent=fmt(d.registrations.reduce((total,point)=>total+(Number(point.count)||0),0));
+  qs('#loginCount').textContent=fmt(d.logins.reduce((total,point)=>total+(Number(point.count)||0),0));
   chart('#trendChart',d.registrations,d.logins);
   chart('#likesChart',d.likes,null,true);
   renderBars(d.listings);
-  renderMix(d.listingOverview.byTransactionType);
+  renderMix(d.listingOverview.byTransactionType, o.newListingsInRange);
+  qs('#likesPerListing').textContent = Number(o.newListingsInRange) ? (Number(o.newLikesInRange) / Number(o.newListingsInRange)).toFixed(2) : 'N/A';
   renderContributors(d.contributors);
   renderCities(d.cities);
 }
 function clearDashboard(message) {
-  ['#totalUsers','#newUsers','#activeUsers','#activeListings','#newListings','#newLikes','#demandLikes','#uniqueUsers','#growthRate','#successRate','#mixTotal','#registrationCount','#loginCount'].forEach(id => qs(id).textContent='—');
+  ['#totalUsers','#newUsers','#activeUsers','#activeListings','#newListings','#newLikes','#demandLikes','#uniqueUsers','#growthRate','#successRate','#mixTotal','#registrationCount','#loginCount','#likesPerListing'].forEach(id => qs(id).textContent='—');
   ['#trendChart','#likesChart','#listingBars','#mixLegend','#leaderboard','#cityRows'].forEach(id => qs(id).innerHTML='');
   qs('#executiveInsight').textContent=message;
   qs('#dataMode').textContent='CONNECTION ERROR';
   qs('#serviceState').textContent='Live API unavailable';
+  qs('#supplyDataNote').textContent='';
   qs('.status-dot').style.background='#d65b55';
 }
 async function refresh() {
   const btn=qs('#refreshBtn');
+  if (btn.classList.contains('loading')) return;
   btn.classList.add('loading');
   qs('#dataMode').textContent='LOADING';
   try {
-    const [overview,userOverview,reg,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities] = await Promise.all([
-      api('/overview'),api('/users/overview'),api('/users/registrations-trend',{groupBy:state.groupBy}),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city')
+    const [overview,userOverview,reg,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities,saleListings,rentListings,mandateListings,requirementListings] = await Promise.all([
+      api('/overview'),api('/users/overview'),api('/users/registrations-trend',{groupBy:state.groupBy}),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city'),api('/listings/overview',{transactionType:'Sale'}),api('/listings/overview',{transactionType:'Rent'}),api('/listings/overview',{transactionType:'Mandate'}),api('/listings/overview',{transactionType:'Requirement'})
     ]);
     const usersByCity=groupCityRows(userCities), loginsByCity=groupCityRows(loginCities), listingsByCity=groupCityRows(listingCities), likesByCity=groupCityRows(likeCities);
     const uc=usersByCity.grouped, lc=loginsByCity.grouped, sc=listingsByCity.grouped, kc=likesByCity.grouped;
     const codes=[...new Set([...Object.keys(uc),...Object.keys(lc),...Object.keys(sc),...Object.keys(kc)])];
     const maxima={users:Math.max(1,...Object.values(uc).map(x=>x.count)),logins:Math.max(1,...Object.values(lc).map(x=>x.count)),listings:Math.max(1,...Object.values(sc).map(x=>x.count)),likes:Math.max(1,...Object.values(kc).map(x=>x.count))};
     const cityRows=codes.map(code=>{const source=uc[code]||lc[code]||sc[code]||kc[code];const row={code,name:source.name,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));row.volume=row.users+row.logins+row.listings+row.likes;return row}).sort((a,b)=>b.volume-a.volume).slice(0,10);
-    state.data={overview,registrations:reg.map(x=>x.count),logins:logins.map(x=>x.count),likes:likes.map(x=>x.count),listings:listings.map(x=>x.count),listingOverview,contributors,cities:cityRows,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
-    const growthRate=Number(userOverview.growthRatePercent)||0, successRate=Number(loginOverview.successRatePercent)||0;
-    qs('#growthRate').textContent=`${growthRate>=0?'+':''}${growthRate.toFixed(1)}%`;
-    qs('#successRate').textContent=`${successRate.toFixed(1)}%`;
+    const reliableMix={Sale:Number(saleListings.newListingsInRange)||0,Rent:Number(rentListings.newListingsInRange)||0,Mandate:Number(mandateListings.newListingsInRange)||0,Requirement:Number(requirementListings.newListingsInRange)||0};
+    const classified=Object.values(reliableMix).reduce((total,value)=>total+value,0);
+    const unclassified=Math.max(0,(Number(listingOverview.newListingsInRange)||0)-classified);
+    if (unclassified) reliableMix.Unclassified=unclassified;
+    listingOverview.byTransactionType=reliableMix;
+    const cityTotals={users:userCities.reduce((t,x)=>t+(Number(x.count)||0),0),logins:loginCities.reduce((t,x)=>t+(Number(x.count)||0),0),listings:listingCities.reduce((t,x)=>t+(Number(x.count)||0),0),likes:likeCities.reduce((t,x)=>t+(Number(x.count)||0),0)};
+    state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
+    const growthRate=userOverview.growthRatePercent, successRate=loginOverview.successRatePercent;
+    qs('#growthRate').textContent=growthRate == null ? 'N/A' : `${Number(growthRate)>=0?'+':''}${Number(growthRate).toFixed(1)}%`;
+    qs('#successRate').textContent=successRate == null ? 'N/A' : `${Number(successRate).toFixed(1)}%`;
     render();
     state.live=true;
     qs('#executiveInsight').textContent=`${fmt(overview.newUsersInRange)} new users and ${fmt(overview.newListingsInRange)} new listings in the selected period.`;
-    qs('#dataMode').textContent='LIVE DATA';
-    qs('#serviceState').textContent='Live API';
+    qs('#dataMode').textContent='TEST API';
+    qs('#serviceState').textContent='Test API · auto-refresh 5m';
     qs('.status-dot').style.background='#9de36d';
     showToast('Dashboard refreshed with live Brokket data');
   } catch (error) {
@@ -332,7 +398,7 @@ async function refresh() {
   }
   await refreshAddendumData();
   const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});
-  qs('#lastUpdated').textContent=`Updated ${now} · Asia/Kolkata`;
+  qs('#lastUpdated').textContent=`Fetched ${now} · Asia/Kolkata`;
   btn.classList.remove('loading');
 }
 function showToast(msg) {
@@ -426,6 +492,7 @@ qs('#loginForm').addEventListener('submit', async event => {
     unlockDashboard();
     await loadCities().catch(() => {});
     await refresh();
+    scheduleAutoRefresh();
     scrollToCurrentSection();
   } catch (error) {
     qs('#loginError').textContent = error.message;
@@ -435,6 +502,7 @@ qs('#loginForm').addEventListener('submit', async event => {
   }
 });
 qs('#logoutBtn').addEventListener('click', async () => {
+  window.clearInterval(window.dashboardRefreshTimer);
   await fetch('/api/auth', { method: 'DELETE' }).catch(() => {});
   lockDashboard('You have signed out.');
 });

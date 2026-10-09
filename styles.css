@@ -892,9 +892,6 @@ main {
   border-radius: 4px 4px 1px 1px;
   background: var(--lime-2);
 }
-.bar-unit span:nth-child(2) {
-  background: var(--blue);
-}
 .bar-unit:after {
   content: attr(data-day);
   position: absolute;
@@ -1135,7 +1132,7 @@ main {
 
 .subscription-kpis {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -1392,6 +1389,23 @@ main {
   color: #788680;
   font-size: 10px;
   line-height: 1.55;
+}
+.coverage-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d8e3dc;
+  border-radius: 12px;
+  background: #f6faf7;
+  color: #66746f;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.coverage-note strong {
+  flex: 0 0 auto;
+  color: var(--ink);
 }
 
 .content-kpis {
