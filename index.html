@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261009-9" />
+  <link rel="stylesheet" href="styles.css?v=20261009-10" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -17,14 +17,18 @@
       <div class="login-brand"><span class="brand-mark">B</span><span class="brand-name">brokket</span></div>
       <p class="eyebrow">SECURE EXECUTIVE ACCESS</p>
       <h1 id="loginTitle">Sign in to the dashboard</h1>
-      <p class="login-copy">Enter your registered number and password to continue.</p>
+      <p class="login-copy">Authenticate with your registered phone, OTP and password to continue.</p>
       <form id="loginForm">
-        <label><span>Number</span><input id="loginNumber" name="number" type="tel" inputmode="numeric" autocomplete="username" required /></label>
+        <div class="login-phone-row">
+          <label><span>Code</span><input id="loginCountryCode" name="countryCode" type="tel" inputmode="tel" autocomplete="tel-country-code" value="+91" required /></label>
+          <label><span>Phone number</span><input id="loginNumber" name="number" type="tel" inputmode="numeric" autocomplete="username" minlength="7" maxlength="15" required /></label>
+        </div>
+        <label><span>OTP</span><input id="loginOtp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="4" maxlength="8" required /></label>
         <label><span>Password</span><input id="loginPassword" name="password" type="password" autocomplete="current-password" required /></label>
         <p class="login-error" id="loginError" role="alert"></p>
         <button class="login-submit" type="submit">Sign in</button>
       </form>
-      <p class="login-security">Protected access · Session expires after 8 hours</p>
+      <p class="login-security">Backend-verified admin access · Encrypted session · Maximum 8 hours</p>
     </div>
   </section>
   <div class="app-shell">
@@ -204,6 +208,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261009-9"></script>
+  <script src="app.js?v=20261009-10"></script>
 </body>
 </html>

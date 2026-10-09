@@ -68,6 +68,7 @@ function lockDashboard(message = '') {
   document.body.classList.add('auth-pending');
   qs('#loginError').textContent = message;
   qs('#loginPassword').value = '';
+  qs('#loginOtp').value = '';
   window.setTimeout(() => qs('#loginNumber').focus(), 50);
 }
 
@@ -485,7 +486,13 @@ qs('#loginForm').addEventListener('submit', async event => {
     const response = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number: qs('#loginNumber').value, password: qs('#loginPassword').value })
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        countryCode: qs('#loginCountryCode').value,
+        phone: qs('#loginNumber').value,
+        otp: qs('#loginOtp').value,
+        password: qs('#loginPassword').value
+      })
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.message || 'Unable to sign in.');

@@ -12,11 +12,13 @@ Configure these values in the production host's environment, not in Git:
 
 ```text
 BROKKET_API_BASE_URL=https://test.api.propertymaster.com/api/v1/ceo-dashboard
-BROKKET_API_BEARER_TOKEN=<optional bearer token>
+BROKKET_AUTH_URL=https://test.api.propertymaster.com/api/user/login-with-password
 BROKKET_API_KEY=<optional API key>
+DASHBOARD_SESSION_SECRET=<long random secret>
+DASHBOARD_ALLOWED_ROLES=ADMIN
 ```
 
-The frontend calls a same-origin authenticated proxy. The Vercel serverless function reads the backend URL and optional credentials from its environment and proxies requests without exposing configuration to browser code. This also avoids browser CORS restrictions.
+The frontend signs in through a same-origin serverless endpoint using country code, phone, OTP and password. The backend response is reduced to the user ID, role and API tokens, encrypted into a Secure/HttpOnly/SameSite cookie, and never exposed to browser JavaScript. Dashboard API calls pass through the authenticated same-origin proxy, which forwards the session access token and user ID to the backend. Only roles listed in `DASHBOARD_ALLOWED_ROLES` can open the dashboard.
 
 ## Vercel
 

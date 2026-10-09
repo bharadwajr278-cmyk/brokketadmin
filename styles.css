@@ -87,6 +87,12 @@ body.authenticated .login-screen {
   gap: 18px;
 }
 
+.login-phone-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+}
+
 .login-card label span {
   color: #263632;
   font-size: 12px;
@@ -164,6 +170,10 @@ body.authenticated .login-screen {
 @media (max-width: 520px) {
   .login-card {
     padding: 28px 22px;
+  }
+
+  .login-phone-row {
+    grid-template-columns: 84px 1fr;
   }
 }
 html {

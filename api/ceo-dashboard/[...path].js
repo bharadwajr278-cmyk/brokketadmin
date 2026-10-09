@@ -1,4 +1,4 @@
-const { isAuthenticated } = require('../../lib/auth');
+const { getSession } = require('../../lib/auth');
 
 module.exports = async function handler(request, response) {
   if (request.method !== 'GET') {
@@ -6,7 +6,8 @@ module.exports = async function handler(request, response) {
     return response.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  if (!isAuthenticated(request)) {
+  const session = getSession(request);
+  if (!session) {
     response.setHeader('Cache-Control', 'no-store');
     return response.status(401).json({ success: false, message: 'Authentication required.' });
   }
@@ -37,9 +38,8 @@ module.exports = async function handler(request, response) {
   }
 
   const headers = { Accept: 'application/json' };
-  if (process.env.BROKKET_API_BEARER_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.BROKKET_API_BEARER_TOKEN}`;
-  }
+  headers.Authorization = `Bearer ${session.accessToken}`;
+  headers['x-user-id'] = session.userId;
   if (process.env.BROKKET_API_KEY) {
     headers['x-api-key'] = process.env.BROKKET_API_KEY;
   }
