@@ -38,7 +38,7 @@ module.exports = async function handler(request, response) {
   Object.entries({
     e: JSON.stringify({ event_type: '_active' }),
     m: 'uniques',
-    i: '-900000',
+    i: '-300000',
     start: currentUtcHour,
     end: currentUtcHour,
   }).forEach(([key, value]) => liveUsersUrl.searchParams.set(key, value));
@@ -104,7 +104,7 @@ module.exports = async function handler(request, response) {
         liveUsers,
         liveUsersAsOf,
         liveUsersAvailable,
-        liveWindowMinutes: 15,
+        liveWindowMinutes: 5,
         liveUsersMessage: liveUsersAvailable ? '' : `Amplitude live users are unavailable (${liveUsersResponse.status}).`,
         latestDau: dauValues.at(-1) || 0,
         averageDau: dauValues.length ? Math.round(sum(dauValues) / dauValues.length) : 0,
