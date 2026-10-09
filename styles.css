@@ -1236,7 +1236,31 @@ main {
   margin-bottom: 12px;
 }
 
+.app-analytics-section {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-analytics-section:before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 38px;
+  right: -80px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 255, 74, .13), transparent 68%);
+  pointer-events: none;
+}
+
+.analytics-kpis.dau-only {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .analytics-kpi {
+  position: relative;
+  overflow: hidden;
   min-width: 0;
   padding: 17px;
   border: 1px solid var(--line);
@@ -1277,12 +1301,32 @@ main {
 
 .analytics-kpi.dark {
   border-color: var(--ink);
-  background: var(--ink);
+  background: linear-gradient(135deg, #071613 0%, #102d27 100%);
   color: #fff;
 }
 
 .analytics-kpi.dark span,
 .analytics-kpi.dark small { color: #a5b3af; }
+.analytics-kpi.dark strong { color: #d4ff6d; }
+.analytics-kpi.average {
+  border-color: #dce9cf;
+  background: linear-gradient(145deg, #fff, #f5faee);
+}
+.analytics-kpi.peak {
+  border-color: #d9e6f7;
+  background: linear-gradient(145deg, #fff, #eef6ff);
+}
+.analytics-kpi.peak strong { color: #347fd7; }
+.kpi-glow {
+  position: absolute;
+  right: -28px;
+  bottom: -38px;
+  width: 120px;
+  height: 120px;
+  border: 24px solid rgba(201, 255, 74, .08);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgba(100, 168, 255, .05);
+}
 .analytics-kpi.downloads { background: #f3fae6; }
 .analytics-kpi.android { background: #f0fbf4; }
 .analytics-kpi.android strong { color: #168a4b; }
@@ -1295,18 +1339,97 @@ main {
   gap: 12px;
 }
 
+.analytics-layout.dau-only {
+  grid-template-columns: 1fr;
+}
+
 .analytics-chart-panel {
   min-width: 0;
   padding: 20px;
 }
 
+.dau-chart-panel {
+  position: relative;
+  overflow: hidden;
+  min-height: 390px;
+  border-color: #d8e4d5;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(201, 255, 74, .13), transparent 27%),
+    linear-gradient(180deg, #fff, #fbfdf9);
+  box-shadow: 0 24px 60px rgba(20, 52, 43, .09);
+}
+
+.dau-chart-wrap {
+  height: 315px;
+}
+
+.dau-grid {
+  stroke: #e4ebe5;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.dau-axis {
+  fill: #7f8f89;
+  font: 9px "DM Sans", sans-serif;
+}
+
+.dau-area { fill: url(#dauArea); }
+.dau-line-glow {
+  fill: none;
+  stroke: rgba(168, 223, 45, .3);
+  stroke-width: 10;
+  filter: url(#dauGlow);
+}
+.dau-line {
+  fill: none;
+  stroke: #8fc724;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.5;
+}
+.dau-hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+.dau-marker circle:first-child {
+  fill: #0b1917;
+  stroke: #d4ff6d;
+  stroke-width: 3;
+}
+.dau-marker.latest circle:first-child {
+  fill: #347fd7;
+  stroke: #fff;
+}
+.dau-marker .pulse {
+  fill: none;
+  stroke: rgba(143, 199, 36, .35);
+  stroke-width: 2;
+}
+.dau-marker.latest .pulse { stroke: rgba(52, 127, 215, .3); }
+.dau-marker text {
+  fill: #253833;
+  font: 700 9px "DM Sans", sans-serif;
+}
+
 .analytics-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 9px;
   border-radius: 999px;
   background: #f0f6ed;
   color: #61706a;
   font-size: 9px;
   font-weight: 700;
+}
+
+.analytics-source i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lime-2);
+  box-shadow: 0 0 0 4px rgba(168, 223, 45, .15);
 }
 
 .compact-legend {
@@ -1803,6 +1926,16 @@ footer {
   .analytics-kpis,
   .content-kpis {
     grid-template-columns: 1fr 1fr;
+  }
+  .analytics-kpis.dau-only {
+    grid-template-columns: 1fr;
+  }
+  .dau-chart-panel {
+    min-height: 330px;
+    padding: 16px;
+  }
+  .dau-chart-wrap {
+    height: 260px;
   }
   .score-stack {
     grid-template-columns: 1fr;

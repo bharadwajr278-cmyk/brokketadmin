@@ -293,6 +293,43 @@ function renderAmplitudeChart(selector, primary = [], secondary = null) {
   svg.innerHTML = `${grids}<path class="line-a" d="${path(first)}"/>${dots(first, 'registration', secondary ? 'Android' : 'Active users')}${second ? `<path class="line-b" d="${path(second)}"/>${dots(second, 'login', 'iOS')}` : ''}${axisLabels}`;
 }
 
+function renderDauChart(points = []) {
+  const svg = qs('#dauChart'), w = 900, h = 300, left = 58, right = 28, top = 28, bottom = 46;
+  if (!points.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No active-user activity in this range</text>';
+    return;
+  }
+  const values = points.map(point => Number(point.count) || 0);
+  const maxValue = Math.max(1, ...values);
+  const ceiling = Math.max(100, Math.ceil(maxValue / 100) * 100);
+  const x = index => left + index * (w - left - right) / Math.max(1, points.length - 1);
+  const y = value => top + (ceiling - value) / ceiling * (h - top - bottom);
+  const coordinates = values.map((value, index) => ({ x: x(index), y: y(value) }));
+  const linePath = coordinates.reduce((path, point, index) => {
+    if (!index) return `M${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+    const previous = coordinates[index - 1];
+    const midpoint = (previous.x + point.x) / 2;
+    return `${path} C${midpoint.toFixed(1)},${previous.y.toFixed(1)} ${midpoint.toFixed(1)},${point.y.toFixed(1)} ${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+  }, '');
+  const baseY = h - bottom;
+  const areaPath = `${linePath} L${coordinates.at(-1).x.toFixed(1)},${baseY} L${coordinates[0].x.toFixed(1)},${baseY} Z`;
+  const yTicks = [0, .25, .5, .75, 1].map(ratio => {
+    const value = Math.round(ceiling * (1 - ratio));
+    const lineY = top + ratio * (h - top - bottom);
+    return `<line class="dau-grid" x1="${left}" y1="${lineY}" x2="${w - right}" y2="${lineY}"/><text class="dau-axis" text-anchor="end" x="${left - 12}" y="${lineY + 4}">${fmt(value)}</text>`;
+  }).join('');
+  const labelStep = Math.max(1, Math.ceil(points.length / 6));
+  const xTicks = points.map((point, index) => index % labelStep === 0 || index === points.length - 1
+    ? `<text class="dau-axis" text-anchor="middle" x="${x(index).toFixed(1)}" y="${h - 12}">${formatDate(point.label).replace(/\s\d{4}$/, '')}</text>` : '').join('');
+  const peakIndex = values.indexOf(maxValue), latestIndex = values.length - 1;
+  const markers = coordinates.map((point, index) => `<circle class="dau-hit" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="10"><title>${formatDate(points[index].label)} · ${fmt(values[index])} active users</title></circle>`).join('');
+  const badge = (index, label, className) => {
+    const point = coordinates[index], badgeY = Math.max(18, point.y - 18);
+    return `<g class="dau-marker ${className}"><circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="6"/><circle class="pulse" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="11"/><text text-anchor="middle" x="${point.x.toFixed(1)}" y="${badgeY.toFixed(1)}">${label} · ${fmt(values[index])}</text></g>`;
+  };
+  svg.innerHTML = `<defs><linearGradient id="dauArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9f13b" stop-opacity=".38"/><stop offset=".6" stop-color="#64a8ff" stop-opacity=".09"/><stop offset="1" stop-color="#64a8ff" stop-opacity="0"/></linearGradient><filter id="dauGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${yTicks}<path class="dau-area" d="${areaPath}"/><path class="dau-line-glow" d="${linePath}"/><path class="dau-line" d="${linePath}"/>${markers}${badge(peakIndex, 'Peak', 'peak')}${latestIndex !== peakIndex ? badge(latestIndex, 'Latest', 'latest') : ''}${xTicks}`;
+}
+
 function renderAmplitude(data) {
   qs('#latestDau').textContent = fmt(data.latestDau);
   qs('#averageDau').textContent = fmt(data.averageDau);
@@ -300,13 +337,24 @@ function renderAmplitude(data) {
   qs('#totalDownloads').textContent = data.downloadsAvailable ? fmt(data.totalDownloads) : '—';
   qs('#androidDownloads').textContent = data.downloadsAvailable ? fmt(data.androidDownloads) : '—';
   qs('#iosDownloads').textContent = data.downloadsAvailable ? fmt(data.iosDownloads) : '—';
-  qs('#amplitudeScopeNote').textContent = !data.downloadsAvailable ? data.downloadsMessage : data.otherDownloads
+  qs('#amplitudeScopeNote').textContent = !data.downloadsAvailable ? '' : data.otherDownloads
     ? `${fmt(data.otherDownloads)} daily unique installs were reported under platforms other than Android or iOS and are included only in the total.`
     : 'Download total reconciles to the Android and iOS daily series.';
-  renderAmplitudeChart('#dauChart', data.dau);
+  const downloadOnly = document.querySelectorAll('.download-only');
+  downloadOnly.forEach(element => { element.hidden = !data.downloadsAvailable; });
+  qs('#downloadAnalytics').hidden = !data.downloadsAvailable;
+  qs('#analyticsKpis').classList.toggle('dau-only', !data.downloadsAvailable);
+  qs('.analytics-layout').classList.toggle('dau-only', !data.downloadsAvailable);
+  qs('#appAnalyticsTitle').textContent = data.downloadsAvailable ? 'Active users & downloads' : 'Active user intelligence';
+  qs('#appAnalyticsNote').textContent = data.downloadsAvailable ? 'Amplitude · daily unique users and installs' : 'Amplitude · daily unique active users';
+  const first = data.dau?.[0], last = data.dau?.at(-1);
+  qs('#dauRangeSummary').textContent = first && last
+    ? `${data.dau.length} daily points · ${formatDate(first.label)} to ${formatDate(last.label)}`
+    : 'Unique active users per day';
+  renderDauChart(data.dau);
   renderAmplitudeChart('#downloadsChart', data.downloadsAvailable ? data.android : [], data.downloadsAvailable ? data.ios : []);
-  qs('#amplitudeError').hidden = data.downloadsAvailable;
-  qs('#amplitudeError').textContent = data.downloadsAvailable ? '' : `${data.downloadsMessage} Daily active users are live.`;
+  qs('#amplitudeError').hidden = true;
+  qs('#amplitudeError').textContent = '';
 }
 
 function renderSubscriptions(data) {
