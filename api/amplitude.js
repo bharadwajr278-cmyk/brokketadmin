@@ -51,11 +51,12 @@ module.exports = async function handler(request, response) {
       usersResponse.json().catch(() => null), downloadsResponse.json().catch(() => null),
     ]);
     if (!usersResponse.ok || !downloadsResponse.ok) {
+      console.warn(`Amplitude upstream status: users=${usersResponse.status}, downloads=${downloadsResponse.status}`);
       const status = usersResponse.status === 401 || downloadsResponse.status === 401 ? 502 :
         usersResponse.status === 429 || downloadsResponse.status === 429 ? 429 : 502;
       const message = status === 429 ? 'Amplitude rate limit reached. Try again shortly.' :
         usersResponse.status === 401 || downloadsResponse.status === 401 ? 'Amplitude credentials were rejected.' :
-        'Amplitude analytics is temporarily unavailable.';
+        `Amplitude API request failed (users ${usersResponse.status}, downloads ${downloadsResponse.status}).`;
       return response.status(status).json({ success: false, message });
     }
 
