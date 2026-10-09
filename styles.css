@@ -197,6 +197,7 @@ button {
   padding: 26px 18px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   z-index: 20;
 }
 .brand {
@@ -259,6 +260,7 @@ button {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  flex-shrink: 0;
 }
 .status-dot {
   width: 8px;

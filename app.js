@@ -312,7 +312,18 @@ qs('#rosterNext').addEventListener('click', () => { state.rosterPage += 1; loadR
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));
-document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));a.classList.add('active');qs('.sidebar').classList.remove('open')}));
+function syncActiveNav() {
+  const target = window.location.hash || '#overview';
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const active = item.getAttribute('href') === target;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+}
+document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{syncActiveNav();qs('.sidebar').classList.remove('open')}));
+window.addEventListener('hashchange', syncActiveNav);
+syncActiveNav();
 qs('#loginForm').addEventListener('submit', async event => {
   event.preventDefault();
   const submit = event.currentTarget.querySelector('button[type="submit"]');
