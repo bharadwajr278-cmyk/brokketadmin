@@ -1,46 +1,16 @@
 const API = '/api/proxy';
-const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30' };
+const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '' };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
 const qs = s => document.querySelector(s);
 
 function dateRange() {
-  if (qs('#periodSelect').value === 'custom') return state.customRange ? { ...state.customRange } : presetRange(state.lastPreset);
   const days = Number(qs('#periodSelect').value);
   const to = new Date();
   const from = new Date(to);
   from.setDate(to.getDate() - days + 1);
   const iso = d => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   return { fromDate: iso(from), toDate: iso(to) };
-}
-
-function istToday() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-}
-
-function presetRange(days) {
-  const to = new Date();
-  const from = new Date(to);
-  from.setDate(to.getDate() - Number(days) + 1);
-  const iso = date => date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  return { fromDate: iso(from), toDate: iso(to) };
-}
-
-function openCustomDatePanel() {
-  const fallback = presetRange(state.lastPreset);
-  const range = state.customRange || fallback;
-  const today = istToday();
-  qs('#customFromDate').max = today;
-  qs('#customToDate').max = today;
-  qs('#customFromDate').value = range.fromDate;
-  qs('#customToDate').value = range.toDate;
-  qs('#customDateError').textContent = '';
-  qs('#customDatePanel').hidden = false;
-}
-
-function closeCustomDatePanel() {
-  qs('#customDatePanel').hidden = true;
-  if (!state.customRange && qs('#periodSelect').value === 'custom') qs('#periodSelect').value = state.lastPreset;
 }
 function params(extra = {}, options = {}) {
   const p = new URLSearchParams(options.dates === false ? extra : { ...dateRange(), ...extra });
@@ -341,54 +311,7 @@ function showToast(msg) {
   window.toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
 }
 document.querySelectorAll('.segmented button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.segmented button').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.groupBy=b.dataset.group;refresh()}));
-qs('#periodSelect').addEventListener('change', event => {
-  if (event.target.value === 'custom') {
-    openCustomDatePanel();
-    return;
-  }
-  state.lastPreset = event.target.value;
-  state.customRange = null;
-  const customOption = event.target.querySelector('option[value="custom"]');
-  customOption.textContent = 'Custom range…';
-  refresh();
-});
-['#citySelect','#typeSelect'].forEach(id=>qs(id).addEventListener('change',refresh));
-qs('#closeDatePanel').addEventListener('click', closeCustomDatePanel);
-qs('#clearDateRange').addEventListener('click', () => {
-  state.customRange = null;
-  state.lastPreset = '30';
-  qs('#periodSelect').value = '30';
-  qs('#periodSelect').querySelector('option[value="custom"]').textContent = 'Custom range…';
-  qs('#customDatePanel').hidden = true;
-  refresh();
-});
-qs('#todayDateRange').addEventListener('click', () => {
-  const today = istToday();
-  qs('#customFromDate').value = today;
-  qs('#customToDate').value = today;
-  qs('#customDateError').textContent = '';
-});
-qs('#applyDateRange').addEventListener('click', () => {
-  const fromDate = qs('#customFromDate').value;
-  const toDate = qs('#customToDate').value;
-  if (!fromDate || !toDate) {
-    qs('#customDateError').textContent = 'Select both start and end dates.';
-    return;
-  }
-  if (fromDate > toDate) {
-    qs('#customDateError').textContent = 'Start date must be before or equal to end date.';
-    return;
-  }
-  state.customRange = { fromDate, toDate };
-  const option = qs('#periodSelect').querySelector('option[value="custom"]');
-  option.textContent = `${fromDate} – ${toDate}`;
-  qs('#periodSelect').value = 'custom';
-  qs('#customDatePanel').hidden = true;
-  refresh();
-});
-document.addEventListener('click', event => {
-  if (!qs('.date-filter-wrap').contains(event.target) && !qs('#customDatePanel').hidden) closeCustomDatePanel();
-});
+['#periodSelect','#citySelect','#typeSelect'].forEach(id=>qs(id).addEventListener('change',refresh));
 qs('#autopayFilter').addEventListener('change', event => { state.rosterAutopay = event.target.value; state.rosterPage = 0; loadRoster(); });
 qs('#rosterPrev').addEventListener('click', () => { if (state.rosterPage > 0) { state.rosterPage -= 1; loadRoster(); } });
 qs('#rosterNext').addEventListener('click', () => { state.rosterPage += 1; loadRoster(); });
