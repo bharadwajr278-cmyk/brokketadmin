@@ -5,7 +5,10 @@ const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency:
 const qs = s => document.querySelector(s);
 
 function dateRange() {
-  if (qs('#periodSelect').value === 'custom') return state.customRange ? { ...state.customRange } : presetRange(state.lastPreset);
+  if (qs('#periodSelect').value === 'custom') {
+    const today = istToday();
+    return state.customRange ? { ...state.customRange } : { fromDate: today, toDate: today };
+  }
   const days = Number(qs('#periodSelect').value);
   const to = new Date();
   const from = new Date(to);
@@ -18,18 +21,9 @@ function istToday() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
-function presetRange(days) {
-  const to = new Date();
-  const from = new Date(to);
-  from.setDate(to.getDate() - Number(days) + 1);
-  const iso = date => date.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  return { fromDate: iso(from), toDate: iso(to) };
-}
-
 function openCustomDatePanel() {
-  const fallback = presetRange(state.lastPreset);
-  const range = state.customRange || fallback;
   const today = istToday();
+  const range = state.customRange || { fromDate: today, toDate: today };
   qs('#customFromDate').max = today;
   qs('#customToDate').max = today;
   qs('#customFromDate').value = range.fromDate;
