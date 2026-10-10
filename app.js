@@ -89,7 +89,8 @@ function renderReportHistory(reports = []) {
     const recipients = (report.recipients || []).join(', ') || 'Not requested';
     const generated = report.generatedAt ? new Date(report.generatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '—';
     const status = String(report.status || 'generated');
-    return `<div class="report-row" role="row"><span><b>${escapeHtml(formatDate(report.date))}</b></span><span><i class="report-status ${escapeHtml(status)}">${escapeHtml(status.replaceAll('-', ' '))}</i></span><span title="${escapeHtml(recipients)}">${escapeHtml(recipients)}</span><span>${escapeHtml(generated)}</span><span><a class="report-download" href="/api/reports?download=${encodeURIComponent(report.pathname)}">Download</a></span></div>`;
+    const reportUrl = `/api/reports?download=${encodeURIComponent(report.pathname)}&view=1`;
+    return `<div class="report-row" role="row"><span><b>${escapeHtml(formatDate(report.date))}</b></span><span><i class="report-status ${escapeHtml(status)}">${escapeHtml(status.replaceAll('-', ' '))}</i></span><span title="${escapeHtml(recipients)}">${escapeHtml(recipients)}</span><span>${escapeHtml(generated)}</span><span><a class="report-download" href="${reportUrl}" target="_blank" rel="noopener">Open PDF</a></span></div>`;
   }).join('') : '<div class="report-empty">No reports generated yet.</div>';
 }
 

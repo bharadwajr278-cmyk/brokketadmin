@@ -15,8 +15,11 @@ module.exports = async function handler(request, response) {
       const result = await store.readReport(String(request.query.download));
       if (!result?.stream) return response.status(404).json({ success: false, message: 'Report not found.' });
       response.setHeader('Content-Type', 'application/pdf');
-      response.setHeader('Content-Disposition', result.blob.contentDisposition || `attachment; filename="${result.blob.pathname.split('/').at(-1)}"`);
+      const filename = result.blob.pathname.split('/').at(-1);
+      const disposition = String(request.query.view || '') === '1' ? 'inline' : 'attachment';
+      response.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
       response.setHeader('Content-Length', String(result.blob.size));
+      response.setHeader('X-Content-Type-Options', 'nosniff');
       return Readable.fromWeb(result.stream).pipe(response);
     }
     if (request.method === 'GET') {
