@@ -82,6 +82,17 @@ async function amplitudeApi() {
   return body.data;
 }
 
+async function amplitudeLiveApi() {
+  const query = params({ liveOnly: '1' }, { city: false });
+  const response = await fetch(`/api/amplitude?${query}`, {
+    signal: AbortSignal.timeout(25000), cache: 'no-store', credentials: 'same-origin'
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard('Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `Amplitude request failed (${response.status})`);
+  return body.data;
+}
+
 function unlockDashboard() {
   document.body.classList.remove('auth-pending');
   document.body.classList.add('authenticated');
@@ -112,9 +123,13 @@ async function startDashboard() {
 
 function scheduleAutoRefresh() {
   window.clearInterval(window.dashboardRefreshTimer);
+  window.clearInterval(window.amplitudeLiveRefreshTimer);
   window.dashboardRefreshTimer = window.setInterval(() => {
     if (document.body.classList.contains('authenticated') && !qs('#refreshBtn').classList.contains('loading')) refresh();
   }, 5 * 60 * 1000);
+  window.amplitudeLiveRefreshTimer = window.setInterval(() => {
+    if (document.body.classList.contains('authenticated')) refreshAmplitudeLive();
+  }, 60 * 1000);
 }
 
 function scrollToCurrentSection() {
@@ -264,6 +279,11 @@ function renderPropertyActivity(data) {
   qs('#activityShared').textContent = fmt(data.shared);
   qs('#activityTotal').textContent = fmt(data.totalInteractions);
   qs('#activityCost').textContent = crore(data.totalQueryCost);
+  const componentTotal = ['called', 'whatsapped', 'shared', 'clicked'].reduce((total, key) => total + (Number(data[key]) || 0), 0);
+  const reconciles = componentTotal === Number(data.totalInteractions);
+  qs('#activityError').hidden = reconciles;
+  qs('#activityError').textContent = reconciles ? '' :
+    `Data quality warning: action types total ${fmt(componentTotal)}, but the backend reports ${fmt(data.totalInteractions)} interactions.`;
   const scope = data.trendLimited
     ? `Daily cost from ${formatDate(data.trendFromDate)} · last ${data.trendDays} days of selected period`
     : 'Daily cost for the selected period';
@@ -331,19 +351,18 @@ function renderDauChart(points = []) {
 }
 
 function renderAmplitude(data) {
-  qs('#liveUsers').textContent = data.liveUsersAvailable ? fmt(data.liveUsers) : '—';
-  qs('#liveUsersMeta').textContent = data.liveUsersAvailable
-    ? 'Real-time active users · latest 5-minute interval · refreshes every 5m'
-    : 'Real-time source unavailable';
+  renderAmplitudeLive(data);
   qs('#latestDau').textContent = fmt(data.latestDau);
   qs('#averageDau').textContent = fmt(data.averageDau);
   qs('#peakDau').textContent = fmt(data.peakDau);
   qs('#totalDownloads').textContent = data.downloadsAvailable ? fmt(data.totalDownloads) : '—';
   qs('#androidDownloads').textContent = data.downloadsAvailable ? fmt(data.androidDownloads) : '—';
   qs('#iosDownloads').textContent = data.downloadsAvailable ? fmt(data.iosDownloads) : '—';
-  qs('#amplitudeScopeNote').textContent = !data.downloadsAvailable ? '' : data.otherDownloads
+  const liveNote = 'Live Events is an immediate ingestion stream; this card uses Amplitude’s supported analytics API and can lag that screen while the 5-minute interval is processed.';
+  const downloadNote = !data.downloadsAvailable ? '' : data.otherDownloads
     ? `${fmt(data.otherDownloads)} daily unique installs were reported under platforms other than Android or iOS and are included only in the total.`
     : 'Download total reconciles to the Android and iOS daily series.';
+  qs('#amplitudeScopeNote').textContent = [liveNote, downloadNote].filter(Boolean).join(' ');
   const downloadOnly = document.querySelectorAll('.download-only');
   downloadOnly.forEach(element => { element.hidden = !data.downloadsAvailable; });
   qs('#downloadAnalytics').hidden = !data.downloadsAvailable;
@@ -359,6 +378,22 @@ function renderAmplitude(data) {
   renderAmplitudeChart('#downloadsChart', data.downloadsAvailable ? data.android : [], data.downloadsAvailable ? data.ios : []);
   qs('#amplitudeError').hidden = true;
   qs('#amplitudeError').textContent = '';
+}
+
+function renderAmplitudeLive(data) {
+  qs('#liveUsers').textContent = data.liveUsersAvailable ? fmt(data.liveUsers) : '—';
+  qs('#liveUsersMeta').textContent = data.liveUsersAvailable
+    ? `Latest processed 5-minute interval · ${data.liveUsersAsOf || 'time unavailable'} Amplitude project time · refreshes every 60s`
+    : 'Amplitude real-time analytics source unavailable';
+}
+
+async function refreshAmplitudeLive() {
+  try {
+    renderAmplitudeLive(await amplitudeLiveApi());
+  } catch (error) {
+    qs('#liveUsers').textContent = '—';
+    qs('#liveUsersMeta').textContent = 'Amplitude real-time analytics source unavailable';
+  }
 }
 
 function renderSubscriptions(data) {
@@ -688,6 +723,7 @@ qs('#loginForm').addEventListener('submit', async event => {
 });
 qs('#logoutBtn').addEventListener('click', async () => {
   window.clearInterval(window.dashboardRefreshTimer);
+  window.clearInterval(window.amplitudeLiveRefreshTimer);
   await fetch('/api/auth', { method: 'DELETE' }).catch(() => {});
   lockDashboard('You have signed out.');
 });

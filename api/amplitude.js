@@ -10,6 +10,28 @@ function points(labels = [], values = []) {
   return labels.map((label, index) => ({ label, count: Number(values[index]) || 0 }));
 }
 
+function liveUsersResult(payload, ok, status) {
+  const liveData = ok ? (payload?.data || {}) : {};
+  const todayIndex = (liveData.seriesLabels || []).findIndex(label => /today/i.test(String(label)));
+  const liveSeries = liveData.series?.[todayIndex >= 0 ? todayIndex : 0] || [];
+  const liveLabels = liveData.xValues || [];
+  let latestLiveIndex = liveSeries.length - 1;
+  while (latestLiveIndex >= 0 && (
+    liveSeries[latestLiveIndex] === null || liveSeries[latestLiveIndex] === undefined ||
+    !Number.isFinite(Number(liveSeries[latestLiveIndex]))
+  )) latestLiveIndex -= 1;
+  const liveUsersAvailable = ok && latestLiveIndex >= 0;
+  return {
+    liveUsers: liveUsersAvailable ? Number(liveSeries[latestLiveIndex]) : null,
+    liveUsersAsOf: liveUsersAvailable ? (liveLabels[latestLiveIndex] || '') : '',
+    liveUsersAvailable,
+    liveWindowMinutes: 5,
+    liveUsersSource: 'Amplitude Dashboard REST API /api/2/realtime',
+    liveUsersDefinition: 'Unique active users in the latest processed 5-minute interval',
+    liveUsersMessage: liveUsersAvailable ? '' : `Amplitude real-time users are unavailable (${status}).`,
+  };
+}
+
 module.exports = async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
   if (request.method !== 'GET') {
@@ -44,6 +66,12 @@ module.exports = async function handler(request, response) {
 
   try {
     const headers = { Accept: 'application/json', Authorization: authorization };
+    if (String(request.query.liveOnly || '') === '1') {
+      const liveResponse = await fetch(liveUsersUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) });
+      const livePayload = await liveResponse.json().catch(() => null);
+      if (!liveResponse.ok) console.warn(`Amplitude live users unavailable: status=${liveResponse.status}`);
+      return response.status(200).json({ success: true, data: liveUsersResult(livePayload, liveResponse.ok, liveResponse.status) });
+    }
     const [usersResponse, downloadsResponse, liveUsersResponse] = await Promise.all([
       fetch(usersUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
       fetch(downloadsUrl, { headers, cache: 'no-store', signal: AbortSignal.timeout(20000) }),
@@ -78,28 +106,13 @@ module.exports = async function handler(request, response) {
     const allValues = dates.map((_, index) => platformSeries.reduce((total, item) => total + (Number(item.values[index]) || 0), 0));
     const sum = values => values.reduce((total, value) => total + (Number(value) || 0), 0);
     const dauValues = dau.map(item => item.count);
-    const liveData = liveUsersResponse.ok ? (liveUsersPayload?.data || {}) : {};
-    const todayIndex = (liveData.seriesLabels || []).findIndex(label => /today/i.test(String(label)));
-    const liveSeries = liveData.series?.[todayIndex >= 0 ? todayIndex : 0] || [];
-    const liveLabels = liveData.xValues || [];
-    let latestLiveIndex = liveSeries.length - 1;
-    while (latestLiveIndex >= 0 && (
-      liveSeries[latestLiveIndex] === null || liveSeries[latestLiveIndex] === undefined ||
-      !Number.isFinite(Number(liveSeries[latestLiveIndex]))
-    )) latestLiveIndex -= 1;
-    const liveUsersAvailable = liveUsersResponse.ok && latestLiveIndex >= 0;
-    const liveUsers = liveUsersAvailable ? Number(liveSeries[latestLiveIndex]) : null;
-    const liveUsersAsOf = liveUsersAvailable ? (liveLabels[latestLiveIndex] || '') : '';
+    const liveResult = liveUsersResult(liveUsersPayload, liveUsersResponse.ok, liveUsersResponse.status);
     if (!liveUsersResponse.ok) console.warn(`Amplitude live users unavailable: status=${liveUsersResponse.status}`);
     return response.status(200).json({
       success: true,
       data: {
         dau,
-        liveUsers,
-        liveUsersAsOf,
-        liveUsersAvailable,
-        liveWindowMinutes: 5,
-        liveUsersMessage: liveUsersAvailable ? '' : `Amplitude live users are unavailable (${liveUsersResponse.status}).`,
+        ...liveResult,
         latestDau: dauValues.at(-1) || 0,
         averageDau: dauValues.length ? Math.round(sum(dauValues) / dauValues.length) : 0,
         peakDau: Math.max(0, ...dauValues),
