@@ -40,7 +40,7 @@ Amplitude credentials are used only by the server-side `/api/amplitude` proxy wi
 
 ## Automated daily reports
 
-The **Daily Reports** dashboard section generates professional PDF snapshots, securely archives them in a private Vercel Blob store, tracks delivery status, and supports authenticated downloads and recipient configuration. The Vercel Cron route runs at `02:30 UTC` (`08:00 IST`) and reports the previous complete IST calendar day. The scheduler uses a dedicated ADMIN service account because browser sessions expire after eight hours.
+The **Daily Reports** dashboard section generates professional PDF snapshots, securely archives them in a private Vercel Blob store, tracks delivery status, and supports authenticated downloads and recipient configuration. The Vercel Cron route runs at `13:00 UTC` (`18:30 IST`) and reports the current IST calendar day through the scheduled run time. The scheduler uses a dedicated ADMIN service account because browser sessions expire after eight hours.
 
 Email delivery uses Resend with three automatic attempts. Configure a verified sender in `REPORT_EMAIL_FROM`; `onboarding@resend.dev` should only be used for initial tests permitted by your Resend account. PDF and API generation errors are logged as structured JSON in Vercel Functions logs and preserved in report metadata where possible.
 

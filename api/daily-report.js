@@ -3,7 +3,7 @@ const store = require('../lib/report-store');
 const { runDailyReport } = require('../lib/report-runner');
 
 function safeEqual(left = '', right = '') { const a = Buffer.from(String(left)), b = Buffer.from(String(right)); return a.length === b.length && crypto.timingSafeEqual(a, b); }
-function previousIstDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); const date = new Date(`${today}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 1); return date.toISOString().slice(0, 10); }
+function currentIstDate() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); }
 
 module.exports = async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
@@ -21,7 +21,7 @@ module.exports = async function handler(request, response) {
     }
   }
   if (request.method !== 'GET') return response.status(405).json({ success: false, message: 'Method not allowed' });
-  const date = previousIstDate();
+  const date = currentIstDate();
   try {
     const existing = (await store.listReports(90)).find(report => report.date === date && report.status === 'delivered');
     if (existing) return response.status(200).json({ success: true, skipped: true, message: `Report ${date} was already delivered.` });
