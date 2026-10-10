@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/brokket-app-icon.png?v=20261010-26" />
   <link rel="apple-touch-icon" href="assets/brokket-app-icon.png?v=20261010-26" />
-  <link rel="stylesheet" href="styles.css?v=20261010-26" />
+  <link rel="stylesheet" href="styles.css?v=20261010-28" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -84,6 +84,9 @@
             <span>Market</span>
             <select id="citySelect" aria-label="City">
               <option value="">All cities</option>
+              <option value="gurugram">Gurugram</option>
+              <option value="faridabad">Faridabad</option>
+              <option value="noida">Noida</option>
             </select>
           </label>
           <button class="refresh-btn" id="refreshBtn" aria-label="Refresh dashboard" title="Refresh dashboard">↻</button>
@@ -238,6 +241,7 @@
               <div class="city-row city-head" role="row"><span>Market</span><span>New users</span><span>Logins</span><span>Listings</span><span>Deal-card likes</span><span>Relative index</span></div>
               <div id="cityRows"></div>
             </div>
+            <div class="city-pagination" aria-label="City table pagination"><button id="cityPrev" type="button">Previous</button><span id="cityPage">Page 1 of 1</span><button id="cityNext" type="button">Next</button></div>
             <p class="geo-data-note" id="geoDataNote"></p>
           </article>
         </section>
@@ -247,6 +251,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261010-27"></script>
+  <script src="app.js?v=20261010-28"></script>
 </body>
 </html>

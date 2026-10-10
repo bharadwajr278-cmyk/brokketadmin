@@ -1,5 +1,10 @@
 const API = '/api/proxy';
-const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30', refreshQueued: false };
+const state = { data: null, live: false, groupBy: 'day', cityNames: {}, cityPage: 0, cityPageSize: 10, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30', refreshQueued: false };
+const MARKET_CITIES = [
+  { code: 'gurugram', name: 'Gurugram' },
+  { code: 'faridabad', name: 'Faridabad' },
+  { code: 'noida', name: 'Noida' }
+];
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
 const crore = n => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format((Number(n) || 0) / 10000000)} Cr`;
@@ -138,6 +143,7 @@ function scrollToCurrentSection() {
 async function loadCities() {
   const cities = await api('/filters/cities');
   mergeKnownCities(cities, true);
+  renderMarketOptions();
 }
 
 function mergeKnownCities(cities = [], overwrite = false) {
@@ -148,11 +154,14 @@ function mergeKnownCities(cities = [], overwrite = false) {
     if (overwrite || !state.cityNames[code]) state.cityNames[code] = name;
   }
 
+}
+
+function renderMarketOptions() {
   const select = qs('#citySelect');
   const selected = select.value;
-  const options = Object.entries(state.cityNames).sort(([, a], [, b]) => a.localeCompare(b, 'en-IN'));
-  select.replaceChildren(new Option('All cities', ''), ...options.map(([code, name]) => new Option(name, code)));
-  select.value = options.some(([code]) => code === selected) ? selected : '';
+  const options = MARKET_CITIES.map(city => ({ ...city, name: state.cityNames[city.code] || city.name }));
+  select.replaceChildren(new Option('All cities', ''), ...options.map(city => new Option(city.name, city.code)));
+  select.value = options.some(city => city.code === selected) ? selected : '';
 }
 
 function normalizeCityCode(value) {
@@ -583,7 +592,14 @@ function renderContributors(items = []) {
   }).join('') : '<li>No contributors in this range</li>';
 }
 function renderCities(items = []) {
-  qs('#cityRows').innerHTML = items.length ? items.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i><span class="city-label">${x.name}</span></span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
+  const totalPages = Math.max(1, Math.ceil(items.length / state.cityPageSize));
+  state.cityPage = Math.min(Math.max(0, state.cityPage), totalPages - 1);
+  const start = state.cityPage * state.cityPageSize;
+  const visibleItems = items.slice(start, start + state.cityPageSize);
+  qs('#cityRows').innerHTML = visibleItems.length ? visibleItems.map(x => `<div class="city-row" role="row"><span class="city-name"><i class="city-code">${x.code}</i><span class="city-label">${x.name}</span></span><span>${fmt(x.users)}</span><span>${fmt(x.logins)}</span><span>${fmt(x.listings)}</span><span>${fmt(x.likes)}</span><span class="momentum"><i class="momentum-bar"><i style="width:${x.score}%"></i></i><b>${x.score}</b></span></div>`).join('') : '<div class="city-row">No city activity in this range</div>';
+  qs('#cityPage').textContent = `Page ${state.cityPage + 1} of ${totalPages}`;
+  qs('#cityPrev').disabled = state.cityPage === 0 || !items.length;
+  qs('#cityNext').disabled = state.cityPage + 1 >= totalPages || !items.length;
   const excluded = state.data?.excludedCities;
   const totals = state.data?.cityTotals || {};
   const coverage = (value, total) => `${fmt(value)} (${(value / Math.max(1, total) * 100).toFixed(1)}%)`;
@@ -637,6 +653,9 @@ function clearDashboard(message) {
   qs('#dataMode').textContent='CONNECTION ERROR';
   qs('#serviceState').textContent='Live API unavailable';
   qs('#supplyDataNote').textContent='';
+  qs('#cityPage').textContent='Page 1 of 1';
+  qs('#cityPrev').disabled=true;
+  qs('#cityNext').disabled=true;
   qs('.status-dot').style.background='#d65b55';
 }
 async function refresh() {
@@ -707,15 +726,17 @@ qs('#periodSelect').addEventListener('change', event => {
   }
   state.lastPreset = event.target.value;
   state.customRange = null;
+  state.cityPage = 0;
   const customOption = event.target.querySelector('option[value="custom"]');
   customOption.textContent = 'Custom range…';
   refresh();
 });
-['#citySelect','#typeSelect'].forEach(id=>qs(id).addEventListener('change',refresh));
+['#citySelect','#typeSelect'].forEach(id=>qs(id).addEventListener('change',()=>{state.cityPage=0;refresh()}));
 qs('#closeDatePanel').addEventListener('click', closeCustomDatePanel);
 qs('#clearDateRange').addEventListener('click', () => {
   state.customRange = null;
   state.lastPreset = '30';
+  state.cityPage = 0;
   qs('#periodSelect').value = '30';
   qs('#periodSelect').querySelector('option[value="custom"]').textContent = 'Custom range…';
   qs('#customDatePanel').hidden = true;
@@ -739,6 +760,7 @@ qs('#applyDateRange').addEventListener('click', () => {
     return;
   }
   state.customRange = { fromDate, toDate };
+  state.cityPage = 0;
   const option = qs('#periodSelect').querySelector('option[value="custom"]');
   option.textContent = `${fromDate} – ${toDate}`;
   qs('#periodSelect').value = 'custom';
@@ -751,6 +773,8 @@ document.addEventListener('click', event => {
 qs('#autopayFilter').addEventListener('change', event => { state.rosterAutopay = event.target.value; state.rosterPage = 0; loadRoster(); });
 qs('#rosterPrev').addEventListener('click', () => { if (state.rosterPage > 0) { state.rosterPage -= 1; loadRoster(); } });
 qs('#rosterNext').addEventListener('click', () => { state.rosterPage += 1; loadRoster(); });
+qs('#cityPrev').addEventListener('click', () => { if (state.cityPage > 0) { state.cityPage -= 1; renderCities(state.data?.cities || []); } });
+qs('#cityNext').addEventListener('click', () => { const total = state.data?.cities?.length || 0; if ((state.cityPage + 1) * state.cityPageSize < total) { state.cityPage += 1; renderCities(state.data.cities); } });
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));
