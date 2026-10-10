@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/brokket-app-icon.png?v=20261010-33" />
   <link rel="apple-touch-icon" href="assets/brokket-app-icon.png?v=20261010-33" />
-  <link rel="stylesheet" href="styles.css?v=20261010-32" />
+  <link rel="stylesheet" href="styles.css?v=20261010-34" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -52,10 +52,11 @@
         <button class="logout-btn" id="logoutBtn" type="button" aria-label="Sign out" title="Sign out">↪</button>
       </div>
     </aside>
+    <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation"></button>
 
     <main>
       <header class="topbar">
-        <button class="mobile-menu" aria-label="Open navigation">☰</button>
+        <button class="mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
         <div>
           <p class="eyebrow">EXECUTIVE INTELLIGENCE</p>
         </div>
@@ -278,6 +279,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261010-31"></script>
+  <script src="app.js?v=20261010-34"></script>
 </body>
 </html>

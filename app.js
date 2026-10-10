@@ -895,7 +895,20 @@ qs('#generateReport').addEventListener('click', generateDailyReport);
 qs('#refreshReports').addEventListener('click', () => loadReports().catch(error => { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }));
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
-qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));
+const mobileMenu = qs('.mobile-menu');
+const sidebar = qs('.sidebar');
+const closeMobileNavigation = () => {
+  sidebar.classList.remove('open');
+  mobileMenu.setAttribute('aria-expanded', 'false');
+};
+mobileMenu.addEventListener('click', () => {
+  const isOpen = sidebar.classList.toggle('open');
+  mobileMenu.setAttribute('aria-expanded', String(isOpen));
+});
+qs('#sidebarBackdrop').addEventListener('click', closeMobileNavigation);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeMobileNavigation();
+});
 function syncActiveNav() {
   const target = window.location.hash || '#overview';
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -905,7 +918,7 @@ function syncActiveNav() {
     else item.removeAttribute('aria-current');
   });
 }
-document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{syncActiveNav();qs('.sidebar').classList.remove('open')}));
+document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{syncActiveNav();closeMobileNavigation()}));
 window.addEventListener('hashchange', syncActiveNav);
 syncActiveNav();
 qs('#loginForm').addEventListener('submit', async event => {
