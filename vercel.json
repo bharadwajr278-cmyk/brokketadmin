@@ -16,8 +16,16 @@
     }
   ],
   "functions": {
-    "api/reports.js": { "maxDuration": 300, "memory": 1024 },
-    "api/daily-report.js": { "maxDuration": 300, "memory": 1024 }
+    "api/reports.js": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "includeFiles": "node_modules/pdfkit/js/standard-fonts/**"
+    },
+    "api/daily-report.js": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "includeFiles": "node_modules/pdfkit/js/standard-fonts/**"
+    }
   },
   "crons": [
     { "path": "/api/daily-report", "schedule": "30 2 * * *" }
