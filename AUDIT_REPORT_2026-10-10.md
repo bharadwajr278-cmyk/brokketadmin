@@ -92,3 +92,4 @@ Validated on 10 October 2026 against 1-day, 7-day, 30-day, and 12-month API rang
 - Daily/monthly subtitles update with the selected grouping.
 - The headline previously labelled “Active users” is now “Users who logged in,” matching its backend definition: unique users with a successful login in the selected range.
 - A runtime reconciliation guard now displays a dashboard warning if headline totals diverge from graph totals.
+- Filter changes made during an in-flight refresh are queued and reloaded automatically; the UI can no longer show a new date/group selection with stale graph data.

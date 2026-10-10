@@ -1,5 +1,5 @@
 const API = '/api/proxy';
-const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30' };
+const state = { data: null, live: false, groupBy: 'day', cityNames: {}, rosterPage: 0, rosterAutopay: '', customRange: null, lastPreset: '30', refreshQueued: false };
 const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
 const crore = n => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format((Number(n) || 0) / 10000000)} Cr`;
@@ -631,7 +631,10 @@ function clearDashboard(message) {
 }
 async function refresh() {
   const btn=qs('#refreshBtn');
-  if (btn.classList.contains('loading')) return;
+  if (btn.classList.contains('loading')) {
+    state.refreshQueued = true;
+    return;
+  }
   btn.classList.add('loading');
   qs('#dataMode').textContent='LOADING';
   try {
@@ -673,6 +676,10 @@ async function refresh() {
   const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'});
   qs('#lastUpdated').textContent=`Fetched ${now} · Asia/Kolkata`;
   btn.classList.remove('loading');
+  if (state.refreshQueued) {
+    state.refreshQueued = false;
+    refresh();
+  }
 }
 function showToast(msg) {
   const t=qs('#toast');
