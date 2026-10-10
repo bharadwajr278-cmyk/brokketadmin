@@ -18,13 +18,11 @@
   "functions": {
     "api/reports.js": {
       "maxDuration": 300,
-      "memory": 1024,
-      "includeFiles": "node_modules/pdfkit/js/standard-fonts/**"
+      "memory": 1024
     },
     "api/daily-report.js": {
       "maxDuration": 300,
-      "memory": 1024,
-      "includeFiles": "node_modules/pdfkit/js/standard-fonts/**"
+      "memory": 1024
     }
   },
   "crons": [
