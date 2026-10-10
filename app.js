@@ -62,6 +62,77 @@ async function api(path, extra = {}, options = {}) {
   return body.data;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
+async function reportsApi(method = 'GET', payload) {
+  const response = await fetch('/api/reports', {
+    method, cache: 'no-store', credentials: 'same-origin',
+    headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+    body: payload ? JSON.stringify(payload) : undefined,
+    signal: AbortSignal.timeout(method === 'POST' && payload?.action === 'generate' ? 290000 : 20000),
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard('Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `Report request failed (${response.status})`);
+  return body.data;
+}
+
+function setReportHealth(id, ready, readyText, missingText) {
+  const element = qs(id); element.textContent = ready ? readyText : missingText;
+  element.classList.toggle('ready', ready); element.classList.toggle('needs-config', !ready);
+}
+
+function renderReportHistory(reports = []) {
+  qs('#reportRows').innerHTML = reports.length ? reports.map(report => {
+    const recipients = (report.recipients || []).join(', ') || 'Not requested';
+    const generated = report.generatedAt ? new Date(report.generatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '—';
+    const status = String(report.status || 'generated');
+    return `<div class="report-row" role="row"><span><b>${escapeHtml(formatDate(report.date))}</b></span><span><i class="report-status ${escapeHtml(status)}">${escapeHtml(status.replaceAll('-', ' '))}</i></span><span title="${escapeHtml(recipients)}">${escapeHtml(recipients)}</span><span>${escapeHtml(generated)}</span><span><a class="report-download" href="/api/reports?download=${encodeURIComponent(report.pathname)}">Download</a></span></div>`;
+  }).join('') : '<div class="report-empty">No reports generated yet.</div>';
+}
+
+async function loadReports() {
+  const data = await reportsApi();
+  const configuration = data.configuration || {};
+  setReportHealth('#reportStorageState', configuration.storage, 'Ready', 'Setup required');
+  setReportHealth('#reportEmailState', configuration.email, 'Ready', 'Setup required');
+  setReportHealth('#reportSchedulerState', configuration.scheduler, 'Active', 'Setup required');
+  qs('#reportRecipients').value = (data.settings?.recipients || ['bharadwajr278@gmail.com']).join('\n');
+  qs('#reportSendEmail').checked = data.settings?.sendEmail !== false;
+  renderReportHistory(data.reports || []);
+  if (!configuration.storage || !configuration.email || !configuration.scheduler) {
+    qs('#reportFeedback').textContent = 'Complete the missing production configuration shown above before the daily automation can run end-to-end.';
+  }
+}
+
+function reportRecipients() {
+  return qs('#reportRecipients').value.split(/[\n,;]+/).map(value => value.trim()).filter(Boolean);
+}
+
+async function saveReportSettings() {
+  const button = qs('#saveReportSettings'); button.disabled = true;
+  qs('#reportFeedback').classList.remove('error'); qs('#reportFeedback').textContent = 'Saving recipient settings…';
+  try {
+    await reportsApi('POST', { action: 'settings', recipients: reportRecipients(), sendEmail: qs('#reportSendEmail').checked });
+    qs('#reportFeedback').textContent = 'Recipient settings saved securely.'; await loadReports();
+  } catch (error) { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }
+  button.disabled = false;
+}
+
+async function generateDailyReport() {
+  const button = qs('#generateReport'); button.disabled = true; button.textContent = 'Generating…';
+  qs('#reportFeedback').classList.remove('error'); qs('#reportFeedback').textContent = 'Collecting APIs, validating metrics, rendering PDF and recording delivery status…';
+  try {
+    await reportsApi('POST', { action: 'settings', recipients: reportRecipients(), sendEmail: qs('#reportSendEmail').checked });
+    const report = await reportsApi('POST', { action: 'generate', date: qs('#reportDate').value, email: qs('#reportSendEmail').checked });
+    qs('#reportFeedback').textContent = report.status === 'delivered' ? 'Report generated, archived and emailed successfully.' : `Report generated with status: ${report.status}. ${report.delivery?.message || ''}`;
+    await loadReports();
+  } catch (error) { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }
+  button.disabled = false; button.textContent = 'Generate report';
+}
+
 async function propertyActivityApi() {
   const query = params();
   const response = await fetch(`/api/property-activities?${query}`, {
@@ -119,8 +190,11 @@ async function startDashboard() {
     return;
   }
   unlockDashboard();
+  qs('#reportDate').value = istToday();
+  qs('#reportDate').max = istToday();
   await loadCities().catch(() => {});
   await refresh();
+  await loadReports().catch(error => { qs('#reportRows').innerHTML = `<div class="report-empty">${escapeHtml(error.message)}</div>`; });
   scheduleAutoRefresh();
   scrollToCurrentSection();
 }
@@ -775,6 +849,9 @@ qs('#rosterPrev').addEventListener('click', () => { if (state.rosterPage > 0) { 
 qs('#rosterNext').addEventListener('click', () => { state.rosterPage += 1; loadRoster(); });
 qs('#cityPrev').addEventListener('click', () => { if (state.cityPage > 0) { state.cityPage -= 1; renderCities(state.data?.cities || []); } });
 qs('#cityNext').addEventListener('click', () => { const total = state.data?.cities?.length || 0; if ((state.cityPage + 1) * state.cityPageSize < total) { state.cityPage += 1; renderCities(state.data.cities); } });
+qs('#saveReportSettings').addEventListener('click', saveReportSettings);
+qs('#generateReport').addEventListener('click', generateDailyReport);
+qs('#refreshReports').addEventListener('click', () => loadReports().catch(error => { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }));
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 qs('.mobile-menu').addEventListener('click',()=>qs('.sidebar').classList.toggle('open'));

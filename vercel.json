@@ -14,5 +14,12 @@
         { "key": "Cache-Control", "value": "no-store" }
       ]
     }
+  ],
+  "functions": {
+    "api/reports.js": { "maxDuration": 300, "memory": 1024 },
+    "api/daily-report.js": { "maxDuration": 300, "memory": 1024 }
+  },
+  "crons": [
+    { "path": "/api/daily-report", "schedule": "30 2 * * *" }
   ]
 }

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="assets/brokket-app-icon.png?v=20261010-26" />
   <link rel="apple-touch-icon" href="assets/brokket-app-icon.png?v=20261010-26" />
-  <link rel="stylesheet" href="styles.css?v=20261010-28" />
+  <link rel="stylesheet" href="styles.css?v=20261010-29" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -44,6 +44,7 @@
         <a class="nav-item" href="#revenue"><span>₹</span> Revenue</a>
         <a class="nav-item" href="#content"><span>▦</span> Content</a>
         <a class="nav-item" href="#geography"><span>⌖</span> Geography</a>
+        <a class="nav-item" href="#daily-reports"><span>▤</span> Daily Reports</a>
       </nav>
       <div class="sidebar-foot">
         <span class="status-dot"></span>
@@ -246,11 +247,37 @@
           </article>
         </section>
 
+        <section id="daily-reports" class="section-block">
+          <div class="section-heading"><div><p class="eyebrow">09 · AUTOMATION</p><h2>Daily performance reports</h2></div><p class="section-note">Secure PDF archive · scheduled daily at 08:00 IST</p></div>
+          <div class="report-health" aria-label="Report automation status">
+            <article><span>Storage</span><strong id="reportStorageState">Checking…</strong><small>private PDF history</small></article>
+            <article><span>Email delivery</span><strong id="reportEmailState">Checking…</strong><small>Resend provider</small></article>
+            <article><span>Daily scheduler</span><strong id="reportSchedulerState">Checking…</strong><small>previous-day report</small></article>
+          </div>
+          <div class="reports-layout">
+            <article class="panel report-config-panel">
+              <div class="panel-head"><div><h3>Generate & deliver</h3><p>Accurate API snapshot for one reporting date</p></div></div>
+              <label class="report-field"><span>Reporting date</span><input id="reportDate" type="date" /></label>
+              <label class="report-field"><span>Recipient emails</span><textarea id="reportRecipients" rows="3" placeholder="name@example.com"></textarea><small>Use one email per line or separate addresses with commas.</small></label>
+              <label class="report-email-toggle"><input id="reportSendEmail" type="checkbox" checked /><span>Email the PDF after generation</span></label>
+              <div class="report-actions"><button id="saveReportSettings" type="button">Save recipients</button><button class="primary-report-action" id="generateReport" type="button">Generate report</button></div>
+              <p class="report-feedback" id="reportFeedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="panel report-history-panel">
+              <div class="panel-head"><div><h3>Report history</h3><p>Latest 90 generated daily reports</p></div><button id="refreshReports" type="button" class="report-refresh">Refresh</button></div>
+              <div class="report-table" role="table" aria-label="Daily report history">
+                <div class="report-row report-head" role="row"><span>Date</span><span>Status</span><span>Recipients</span><span>Generated</span><span>PDF</span></div>
+                <div id="reportRows"><div class="report-empty">Loading report history…</div></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <footer><span>Brokket internal analytics</span><span id="lastUpdated">Updated just now · Asia/Kolkata</span></footer>
       </div>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261010-28"></script>
+  <script src="app.js?v=20261010-29"></script>
 </body>
 </html>
