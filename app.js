@@ -118,6 +118,20 @@ async function reportsApi(method = 'GET', payload) {
 function setReportHealth(id, ready, readyText, missingText) {
   const element = qs(id); element.textContent = ready ? readyText : missingText;
   element.classList.toggle('ready', ready); element.classList.toggle('needs-config', !ready);
+  element.classList.remove('error');
+}
+
+function showReportLoadError(error) {
+  ['#reportStorageState', '#reportEmailState', '#reportSchedulerState'].forEach(id => {
+    const element = qs(id);
+    element.textContent = 'Unavailable';
+    element.classList.remove('ready', 'needs-config');
+    element.classList.add('error');
+  });
+  const message = error?.message || 'Report service is temporarily unavailable.';
+  qs('#reportRows').innerHTML = `<div class="report-empty">${escapeHtml(message)}</div>`;
+  qs('#reportFeedback').classList.add('error');
+  qs('#reportFeedback').textContent = `${message} The reporting date is not the cause; retry after the service recovers.`;
 }
 
 function renderReportHistory(reports = []) {
@@ -139,6 +153,8 @@ async function loadReports() {
   qs('#reportRecipients').value = (data.settings?.recipients || ['bharadwajr278@gmail.com']).join('\n');
   qs('#reportSendEmail').checked = data.settings?.sendEmail !== false;
   renderReportHistory(data.reports || []);
+  qs('#reportFeedback').classList.remove('error');
+  qs('#reportFeedback').textContent = '';
   if (!configuration.storage || !configuration.email || !configuration.scheduler) {
     qs('#reportFeedback').textContent = 'Complete the missing production configuration shown above before the daily automation can run end-to-end.';
   }
@@ -162,8 +178,11 @@ async function generateDailyReport() {
   const button = qs('#generateReport'); button.disabled = true; button.textContent = 'Generating…';
   qs('#reportFeedback').classList.remove('error'); qs('#reportFeedback').textContent = 'Collecting APIs, validating metrics, rendering PDF and recording delivery status…';
   try {
+    const reportDate = qs('#reportDate').value;
+    if (!reportDate) throw new Error('Choose a reporting date.');
+    if (reportDate > istToday()) throw new Error('The reporting date cannot be in the future.');
     await reportsApi('POST', { action: 'settings', recipients: reportRecipients(), sendEmail: qs('#reportSendEmail').checked });
-    const report = await reportsApi('POST', { action: 'generate', date: qs('#reportDate').value, email: qs('#reportSendEmail').checked });
+    const report = await reportsApi('POST', { action: 'generate', date: reportDate, email: qs('#reportSendEmail').checked });
     qs('#reportFeedback').textContent = report.status === 'delivered' ? 'Report generated, archived and emailed successfully.' : `Report generated with status: ${report.status}. ${report.delivery?.message || ''}`;
     await loadReports();
   } catch (error) { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }
@@ -229,9 +248,10 @@ async function startDashboard() {
   unlockDashboard();
   qs('#reportDate').value = istToday();
   qs('#reportDate').max = istToday();
+  qs('#reportDateHelp').textContent = `Today (${formatDate(istToday())}) and earlier dates are valid.`;
   await loadCities().catch(() => {});
   await refresh();
-  await loadReports().catch(error => { qs('#reportRows').innerHTML = `<div class="report-empty">${escapeHtml(error.message)}</div>`; });
+  await loadReports().catch(showReportLoadError);
   scheduleAutoRefresh();
   scrollToCurrentSection();
 }
@@ -892,7 +912,7 @@ qs('#cityPrev').addEventListener('click', () => { if (state.cityPage > 0) { stat
 qs('#cityNext').addEventListener('click', () => { const total = state.data?.cities?.length || 0; if ((state.cityPage + 1) * state.cityPageSize < total) { state.cityPage += 1; renderCities(state.data.cities); } });
 qs('#saveReportSettings').addEventListener('click', saveReportSettings);
 qs('#generateReport').addEventListener('click', generateDailyReport);
-qs('#refreshReports').addEventListener('click', () => loadReports().catch(error => { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }));
+qs('#refreshReports').addEventListener('click', () => loadReports().catch(showReportLoadError));
 qs('#refreshBtn').addEventListener('click',refresh);
 qs('#scopeInfo').addEventListener('click',e=>e.currentTarget.setAttribute('aria-expanded',e.currentTarget.getAttribute('aria-expanded')!=='true'));
 const mobileMenu = qs('.mobile-menu');

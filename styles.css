@@ -1140,6 +1140,7 @@ main {
 .report-health strong { font: 800 17px Manrope; color: var(--ink); }
 .report-health strong.ready { color: #258354; }
 .report-health strong.needs-config { color: var(--danger); }
+.report-health strong.error { color: var(--danger); }
 .report-health small,
 .report-field small { color: var(--muted); font-size: 9px; }
 .reports-layout {
