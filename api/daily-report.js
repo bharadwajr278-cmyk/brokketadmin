@@ -23,7 +23,8 @@ module.exports = async function handler(request, response) {
   if (request.method !== 'GET') return response.status(405).json({ success: false, message: 'Method not allowed' });
   const date = currentIstDate();
   try {
-    const existing = (await store.listReports(90)).find(report => report.date === date && report.status === 'delivered');
+    const force = String(request.query?.force || '') === '1';
+    const existing = force ? null : (await store.listReports(90)).find(report => report.date === date && report.status === 'delivered');
     if (existing) return response.status(200).json({ success: true, skipped: true, message: `Report ${date} was already delivered.` });
     const report = await runDailyReport({ date, scheduled: true, email: true });
     return response.status(report.status === 'delivered' ? 200 : 207).json({ success: report.status === 'delivered', data: report });
