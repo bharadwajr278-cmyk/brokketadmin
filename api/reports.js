@@ -21,7 +21,7 @@ module.exports = async function handler(request, response) {
     }
     if (request.method === 'GET') {
       const [settings, reports] = await Promise.all([store.getSettings(), store.listReports(90)]);
-      return response.status(200).json({ success: true, data: { settings, reports, configuration: { storage: store.configured(), email: Boolean(process.env.RESEND_API_KEY), scheduler: Boolean(process.env.CRON_SECRET && process.env.BROKKET_REPORT_PHONE && process.env.BROKKET_REPORT_PASSWORD) } } });
+      return response.status(200).json({ success: true, data: { settings, reports, configuration: { storage: store.configured(), email: Boolean(process.env.RESEND_API_KEY || process.env.SMTP_USER && process.env.SMTP_APP_PASSWORD), scheduler: Boolean(process.env.CRON_SECRET && process.env.BROKKET_REPORT_PHONE && process.env.BROKKET_REPORT_PASSWORD) } } });
     }
     if (request.method === 'POST') {
       const input = body(request);
