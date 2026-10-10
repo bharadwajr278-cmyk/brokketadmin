@@ -9,6 +9,42 @@ const fmt = n => new Intl.NumberFormat('en-IN').format(n ?? 0);
 const money = n => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n ?? 0);
 const crore = n => `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format((Number(n) || 0) / 10000000)} Cr`;
 const qs = s => document.querySelector(s);
+const countUpAnimations = new WeakMap();
+
+function setCountUp(target, value, formatter = number => fmt(Math.round(number))) {
+  const element = typeof target === 'string' ? qs(target) : target;
+  const end = Number(value);
+  if (!element || !Number.isFinite(end)) {
+    if (element) element.textContent = '—';
+    return;
+  }
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const stored = Number(element.dataset.countValue);
+  const start = element.dataset.countValue === undefined || !Number.isFinite(stored) ? 0 : stored;
+  element.dataset.countValue = String(end);
+  const activeFrame = countUpAnimations.get(element);
+  if (activeFrame) cancelAnimationFrame(activeFrame);
+  if (reducedMotion || start === end) {
+    element.textContent = formatter(end);
+    element.classList.remove('counting');
+    return;
+  }
+  element.classList.add('counting');
+  const startedAt = performance.now();
+  const duration = 900;
+  const frame = now => {
+    const progress = Math.min(1, (now - startedAt) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = formatter(start + (end - start) * eased);
+    if (progress < 1) countUpAnimations.set(element, requestAnimationFrame(frame));
+    else {
+      element.textContent = formatter(end);
+      element.classList.remove('counting');
+      countUpAnimations.delete(element);
+    }
+  };
+  countUpAnimations.set(element, requestAnimationFrame(frame));
+}
 
 function dateRange() {
   if (qs('#periodSelect').value === 'custom') {
@@ -391,15 +427,15 @@ function renderActivityCostChart(data) {
     ? `<text class="axis-label" text-anchor="middle" x="${(p + index * slot + slot / 2).toFixed(1)}" y="${h - 6}">${point.label.slice(5)}</text>` : '').join('');
   const grids = [0, .5, 1].map(value => `<line class="grid-line" x1="${p}" y1="${p + value * (h - p * 2)}" x2="${w - p}" y2="${p + value * (h - p * 2)}"/>`).join('');
   svg.innerHTML = `${grids}${bars}${labels}`;
-  qs('#latestDailyCost').textContent = crore(values[values.length - 1]);
+  setCountUp('#latestDailyCost', values[values.length - 1], crore);
 }
 
 function renderPropertyActivity(data) {
-  qs('#activityCalled').textContent = fmt(data.called);
-  qs('#activityWhatsapped').textContent = fmt(data.whatsapped);
-  qs('#activityShared').textContent = fmt(data.shared);
-  qs('#activityTotal').textContent = fmt(data.totalInteractions);
-  qs('#activityCost').textContent = crore(data.totalQueryCost);
+  setCountUp('#activityCalled', data.called);
+  setCountUp('#activityWhatsapped', data.whatsapped);
+  setCountUp('#activityShared', data.shared);
+  setCountUp('#activityTotal', data.totalInteractions);
+  setCountUp('#activityCost', data.totalQueryCost, crore);
   const componentTotal = ['called', 'whatsapped', 'shared', 'clicked'].reduce((total, key) => total + (Number(data[key]) || 0), 0);
   const reconciles = componentTotal === Number(data.totalInteractions);
   qs('#activityError').hidden = reconciles;
@@ -485,12 +521,14 @@ function renderDauChart(points = []) {
 
 function renderAmplitude(data) {
   renderAmplitudeLive(data);
-  qs('#latestDau').textContent = fmt(data.latestDau);
-  qs('#averageDau').textContent = fmt(data.averageDau);
-  qs('#peakDau').textContent = fmt(data.peakDau);
-  qs('#totalDownloads').textContent = data.downloadsAvailable ? fmt(data.totalDownloads) : '—';
-  qs('#androidDownloads').textContent = data.downloadsAvailable ? fmt(data.androidDownloads) : '—';
-  qs('#iosDownloads').textContent = data.downloadsAvailable ? fmt(data.iosDownloads) : '—';
+  setCountUp('#latestDau', data.latestDau);
+  setCountUp('#averageDau', data.averageDau);
+  setCountUp('#peakDau', data.peakDau);
+  if (data.downloadsAvailable) {
+    setCountUp('#totalDownloads', data.totalDownloads);
+    setCountUp('#androidDownloads', data.androidDownloads);
+    setCountUp('#iosDownloads', data.iosDownloads);
+  } else ['#totalDownloads', '#androidDownloads', '#iosDownloads'].forEach(id => qs(id).textContent = '—');
   const liveNote = 'Live Events is an immediate ingestion stream; this card uses Amplitude’s supported analytics API and can lag that screen while the 5-minute interval is processed.';
   const downloadNote = !data.downloadsAvailable ? '' : data.otherDownloads
     ? `${fmt(data.otherDownloads)} daily unique installs were reported under platforms other than Android or iOS and are included only in the total.`
@@ -514,7 +552,8 @@ function renderAmplitude(data) {
 }
 
 function renderAmplitudeLive(data) {
-  qs('#liveUsers').textContent = data.liveUsersAvailable ? fmt(data.liveUsers) : '—';
+  if (data.liveUsersAvailable) setCountUp('#liveUsers', data.liveUsers);
+  else qs('#liveUsers').textContent = '—';
   qs('#liveUsersMeta').textContent = data.liveUsersAvailable
     ? `Latest processed 5-minute interval · ${data.liveUsersAsOf || 'time unavailable'} Amplitude project time · refreshes every 60s`
     : 'Amplitude real-time analytics source unavailable';
@@ -536,9 +575,9 @@ function renderSubscriptions(data) {
     ['#uniquePayers', data.totalUniquePayingSubscribersAllTime], ['#subscriptionsSold', data.totalSubscriptionsSoldAllTime],
     ['#newPurchases', data.newPurchasesInRange], ['#renewals', data.renewalsInRange]
   ];
-  values.forEach(([id, value]) => qs(id).textContent = fmt(value));
-  qs('#revenueInRange').textContent = money(data.revenueInRange);
-  qs('#revenueAllTime').textContent = money(data.totalRevenueAllTime);
+  values.forEach(([id, value]) => setCountUp(id, value));
+  setCountUp('#revenueInRange', data.revenueInRange, money);
+  setCountUp('#revenueAllTime', data.totalRevenueAllTime, money);
   qs('#planBreakdown').innerHTML = (data.byPlan || []).length ? data.byPlan.map(plan => `<div class="plan-row"><span><b>${plan.planName || plan.planCode}</b><small>${plan.planCode}</small></span><span><b>${fmt(plan.activeSubscribers)}</b><small>${money(plan.totalRevenueAllTime)}</small></span></div>`).join('') : '<p class="section-note">No active plan data</p>';
   qs('#autopayStatus').innerHTML = Object.entries(data.byAutopayStatus || {}).map(([status, count]) => `<span><i></i>${status}<b>${fmt(count)}</b></span>`).join('');
   const paidPlanTotal = (data.byPlan || []).filter(plan => String(plan.planCode).toUpperCase() !== 'TRIAL').reduce((total, plan) => total + (Number(plan.activeSubscribers) || 0), 0);
@@ -551,9 +590,9 @@ function renderSubscriptions(data) {
 }
 
 function renderContent(data) {
-  qs('#feedPosts').textContent = fmt(data.feedPostsInRange);
-  qs('#picturePosts').textContent = fmt(data.picturesUploadedInRange);
-  qs('#contentCreators').textContent = fmt(data.uniqueContentCreatorsInRange);
+  setCountUp('#feedPosts', data.feedPostsInRange);
+  setCountUp('#picturePosts', data.picturesUploadedInRange);
+  setCountUp('#contentCreators', data.uniqueContentCreatorsInRange);
   qs('#contentScopeNote').textContent = data.scopeNote || '';
 }
 
@@ -647,14 +686,14 @@ function renderBars(rows = []) {
 }
 function renderMix(obj = {}, expectedTotal = 0) {
   const total = Object.values(obj).reduce((a,b) => a+b, 0), colors = ['#a8df2d','#64a8ff','#9b87ff','#ffad5b','#a6b0ac'];
-  if (!total) { qs('#mixTotal').textContent=fmt(expectedTotal); qs('#mixLegend').innerHTML=''; qs('#supplyDataNote').textContent='No classified listing activity in this range.'; return; }
+  if (!total) { setCountUp('#mixTotal', expectedTotal); qs('#mixLegend').innerHTML=''; qs('#supplyDataNote').textContent='No classified listing activity in this range.'; return; }
   let acc = 0;
   const stops = Object.values(obj).map((v,i) => { const start=acc; acc+=v/total*100; return `${colors[i]} ${start}% ${acc}%`; });
   const lead = Object.entries(obj).sort((a,b)=>b[1]-a[1])[0];
   qs('#supplyDonut').style.background = `conic-gradient(${stops.join(',')})`;
   qs('#supplyDonut').innerHTML = `<div><strong>${Math.round(lead[1]/total*100)}%</strong><span>${lead[0]}</span></div>`;
   qs('#mixLegend').innerHTML = Object.entries(obj).map(([k,v],i) => `<div class="mix-item"><i style="background:${colors[i]}"></i><span>${k}</span><b>${fmt(v)}</b></div>`).join('');
-  qs('#mixTotal').textContent = fmt(expectedTotal || total);
+  setCountUp('#mixTotal', expectedTotal || total);
   const unclassified = Number(obj.Unclassified) || 0;
   qs('#supplyDataNote').textContent = unclassified
     ? `${fmt(unclassified)} listings (${(unclassified / Math.max(1, expectedTotal) * 100).toFixed(1)}%) have no valid transaction type and are shown as Unclassified.`
@@ -690,16 +729,15 @@ function renderCities(items = []) {
 }
 function render() {
   const d=state.data,o=d.overview;
-  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',d.uniqueActiveUsers],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',d.trackedLikesInRange],['#demandLikes',d.trackedLikesInRange],['#uniqueUsers',d.uniqueActiveUsers]].forEach(([id,v]) => qs(id).textContent=fmt(v));
-  qs('#registrationCount').textContent=fmt(d.registrations.reduce((total,point)=>total+(Number(point.count)||0),0));
-  qs('#loginCount').textContent=fmt(d.logins.reduce((total,point)=>total+(Number(point.count)||0),0));
+  [['#totalUsers',o.totalUsers],['#newUsers',o.newUsersInRange],['#activeUsers',d.uniqueActiveUsers],['#activeListings',o.totalActiveListings],['#newListings',o.newListingsInRange],['#newLikes',d.trackedLikesInRange],['#demandLikes',d.trackedLikesInRange],['#uniqueUsers',d.uniqueActiveUsers]].forEach(([id,v]) => setCountUp(id,v));
+  setCountUp('#registrationCount', d.registrations.reduce((total,point)=>total+(Number(point.count)||0),0));
+  setCountUp('#loginCount', d.logins.reduce((total,point)=>total+(Number(point.count)||0),0));
   chart('#trendChart',d.registrations,d.logins);
   chart('#likesChart',d.likes,null,true);
   renderBars(d.listings);
   renderMix(d.listingOverview.byTransactionType, o.newListingsInRange);
-  qs('#likesPerListing').textContent = Number(d.trackedListingsInRange)
-    ? (Number(d.trackedLikesInRange) / Number(d.trackedListingsInRange)).toFixed(2)
-    : 'N/A';
+  if (Number(d.trackedListingsInRange)) setCountUp('#likesPerListing', Number(d.trackedLikesInRange) / Number(d.trackedListingsInRange), value => value.toFixed(2));
+  else qs('#likesPerListing').textContent = 'N/A';
   qs('#likesScopeNote').textContent = d.likesScopeNote;
   const periodWord = state.groupBy === 'month' ? 'Monthly' : 'Daily';
   qs('#growthChartSubtitle').textContent = `${periodWord} registrations and successful logins`;
@@ -761,8 +799,10 @@ async function refresh() {
     state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,trackedListingsInRange,trackedLikesInRange:Number(likeOverview.totalLikesInRange)||0,likesScopeNote:likeOverview.scopeNote||'Covers date-ranged likes on Mandate and Requirement listings only.',contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
     renderReconciliationAudit({ overview, userOverview, loginOverview, registrationTrend: reg, loginTrend: logins, listingOverview, listingTrend: listings, likeOverview, likeTrend: likes });
     const growthRate=userOverview.growthRatePercent, successRate=loginOverview.successRatePercent;
-    qs('#growthRate').textContent=growthRate == null ? 'N/A' : `${Number(growthRate)>=0?'+':''}${Number(growthRate).toFixed(1)}%`;
-    qs('#successRate').textContent=successRate == null ? 'N/A' : `${Number(successRate).toFixed(1)}%`;
+    if (growthRate == null) qs('#growthRate').textContent = 'N/A';
+    else setCountUp('#growthRate', growthRate, value => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`);
+    if (successRate == null) qs('#successRate').textContent = 'N/A';
+    else setCountUp('#successRate', successRate, value => `${value.toFixed(1)}%`);
     render();
     state.live=true;
     qs('#executiveInsight').textContent=`${fmt(overview.newUsersInRange)} new users and ${fmt(overview.newListingsInRange)} new listings in the selected period.`;

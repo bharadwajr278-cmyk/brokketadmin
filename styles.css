@@ -567,6 +567,14 @@ main {
   letter-spacing: -1px;
   margin-top: 3px;
 }
+
+[data-count-value] {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-count-value].counting {
+  will-change: contents;
+}
 .metric-foot {
   display: flex;
   justify-content: space-between;
