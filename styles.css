@@ -1162,6 +1162,7 @@ main {
 .report-head { min-height: 32px; color: var(--muted); font: 700 8px Manrope; letter-spacing: .08em; text-transform: uppercase; }
 .report-status { width: fit-content; padding: 5px 7px; border-radius: 999px; background: #eef3ef; font-weight: 700; text-transform: capitalize; }
 .report-status.delivered { color: #257b4f; background: #e9f8ef; }
+.report-status.partially-delivered { color: #8a6516; background: #fff7dc; }
 .report-status.delivery-failed { color: #aa3e39; background: #fff0ef; }
 .report-download { color: var(--ink); font-weight: 800; }
 .report-empty { padding: 26px 6px; color: var(--muted); font-size: 11px; }
