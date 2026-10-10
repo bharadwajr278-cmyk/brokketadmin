@@ -137,12 +137,22 @@ function scrollToCurrentSection() {
 }
 async function loadCities() {
   const cities = await api('/filters/cities');
-  state.cityNames = Object.fromEntries(cities.map(city => [normalizeCityCode(city.cityCode), city.cityName.trim()]));
+  mergeKnownCities(cities, true);
+}
+
+function mergeKnownCities(cities = [], overwrite = false) {
+  for (const city of cities) {
+    const code = normalizeCityCode(city.cityCode ?? city.code);
+    const name = String(city.cityName ?? city.name ?? '').trim();
+    if (!code || ['unknown', 'unk', 'null', 'other'].includes(code) || !name || /^unknown$/i.test(name)) continue;
+    if (overwrite || !state.cityNames[code]) state.cityNames[code] = name;
+  }
+
   const select = qs('#citySelect');
   const selected = select.value;
-  select.innerHTML = '<option value="">All cities</option>' +
-    cities.map(c => `<option value="${c.cityCode}">${c.cityName}</option>`).join('');
-  select.value = selected;
+  const options = Object.entries(state.cityNames).sort(([, a], [, b]) => a.localeCompare(b, 'en-IN'));
+  select.replaceChildren(new Option('All cities', ''), ...options.map(([code, name]) => new Option(name, code)));
+  select.value = options.some(([code]) => code === selected) ? selected : '';
 }
 
 function normalizeCityCode(value) {
@@ -645,7 +655,8 @@ async function refresh() {
     const uc=usersByCity.grouped, lc=loginsByCity.grouped, sc=listingsByCity.grouped, kc=likesByCity.grouped;
     const codes=[...new Set([...Object.keys(uc),...Object.keys(lc),...Object.keys(sc),...Object.keys(kc)])];
     const maxima={users:Math.max(1,...Object.values(uc).map(x=>x.count)),logins:Math.max(1,...Object.values(lc).map(x=>x.count)),listings:Math.max(1,...Object.values(sc).map(x=>x.count)),likes:Math.max(1,...Object.values(kc).map(x=>x.count))};
-    const cityRows=codes.map(code=>{const source=uc[code]||lc[code]||sc[code]||kc[code];const row={code,name:source.name,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));row.volume=row.users+row.logins+row.listings+row.likes;return row}).sort((a,b)=>b.volume-a.volume).slice(0,10);
+    mergeKnownCities(codes.map(code => { const source=uc[code]||lc[code]||sc[code]||kc[code]; return { cityCode: code, cityName: source.name }; }));
+    const cityRows=codes.map(code=>{const source=uc[code]||lc[code]||sc[code]||kc[code];const row={code,name:state.cityNames[code]||source.name,users:uc[code]?.count||0,logins:lc[code]?.count||0,listings:sc[code]?.count||0,likes:kc[code]?.count||0};row.score=Math.round(25*(row.users/maxima.users+row.logins/maxima.logins+row.listings/maxima.listings+row.likes/maxima.likes));row.volume=row.users+row.logins+row.listings+row.likes;return row}).sort((a,b)=>b.volume-a.volume);
     const reliableMix={Sale:Number(saleListings.newListingsInRange)||0,Rent:Number(rentListings.newListingsInRange)||0,Mandate:Number(mandateListings.newListingsInRange)||0,Requirement:Number(requirementListings.newListingsInRange)||0};
     const classified=Object.values(reliableMix).reduce((total,value)=>total+value,0);
     const unclassified=Math.max(0,(Number(listingOverview.newListingsInRange)||0)-classified);
