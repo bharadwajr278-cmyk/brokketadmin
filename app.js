@@ -11,11 +11,10 @@ function dateRange() {
     return state.customRange ? { ...state.customRange } : { fromDate: today, toDate: today };
   }
   const days = Number(qs('#periodSelect').value);
-  const to = new Date();
-  const from = new Date(to);
-  from.setDate(to.getDate() - days + 1);
-  const iso = d => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  return { fromDate: iso(from), toDate: iso(to) };
+  const toDate = istToday();
+  const from = new Date(`${toDate}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - days + 1);
+  return { fromDate: from.toISOString().slice(0, 10), toDate };
 }
 
 function istToday() {
@@ -194,6 +193,32 @@ function rangeBuckets() {
   return buckets;
 }
 
+function dailyBuckets(fromDate, toDate) {
+  const buckets = [];
+  const cursor = new Date(`${fromDate}T00:00:00Z`);
+  const end = new Date(`${toDate}T00:00:00Z`);
+  while (cursor <= end) {
+    buckets.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return buckets;
+}
+
+function normalizeTemporalRows(rows = [], valueKey = 'count', domain = rangeBuckets()) {
+  const byLabel = new Map();
+  for (const row of rows) {
+    const rawLabel = String(row?.label || '');
+    const label = state.groupBy === 'month' && domain[0]?.length === 7 ? rawLabel.slice(0, 7) : rawLabel.slice(0, 10);
+    if (!label) continue;
+    byLabel.set(label, (byLabel.get(label) || 0) + (Number(row?.[valueKey]) || 0));
+  }
+  return domain.map(label => ({ label, [valueKey]: byLabel.get(label) || 0 }));
+}
+
+function pointX(index, length, start, end) {
+  return length <= 1 ? (start + end) / 2 : start + index * (end - start) / (length - 1);
+}
+
 function bucketLabel(label) {
   if (state.groupBy === 'month') {
     return new Date(`${label}-01T00:00:00Z`).toLocaleDateString('en-IN', { month: 'short', year: '2-digit', timeZone: 'UTC' });
@@ -208,25 +233,23 @@ function chart(svgId, aRows = [], bRows = null, compact = false) {
     return;
   }
   const domain = rangeBuckets();
-  const values = rows => {
-    const byLabel = new Map(rows.map(row => [row.label, Number(row.count) || 0]));
-    return domain.map(label => byLabel.get(label) || 0);
-  };
+  const values = rows => normalizeTemporalRows(rows, 'count', domain).map(row => row.count);
   const a = values(aRows), b = bRows ? values(bRows) : null;
   const all = b ? [...a, ...b] : a;
   const max = Math.max(1, ...all) * 1.12;
-  const pts = vals => vals.map((v, i) => [p + i * (w - p * 2) / Math.max(1, vals.length - 1), h - p - (v / max) * (h - p * 2)]);
+  const pts = vals => vals.map((v, i) => [pointX(i, vals.length, p, w - p), h - p - (v / max) * (h - p * 2)]);
   const path = vals => pts(vals).map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
-  const area = vals => `${path(vals)} L${w-p},${h-p} L${p},${h-p} Z`;
+  const area = vals => vals.length > 1 ? `${path(vals)} L${w-p},${h-p} L${p},${h-p} Z` : '';
   const grids = [0,.25,.5,.75,1].map(v => `<line class="grid-line" x1="${p}" y1="${p+v*(h-p*2)}" x2="${w-p}" y2="${p+v*(h-p*2)}"/><text class="axis-label" x="2" y="${p+v*(h-p*2)+4}">${Math.round(max*(1-v))}</text>`).join('');
   const step = Math.max(1, Math.ceil(domain.length / 5));
-  const labels = domain.map((label,i) => i % step === 0 || i === domain.length - 1 ? `<text class="axis-label" text-anchor="middle" x="${p+i*(w-p*2)/Math.max(1,domain.length-1)}" y="${h-5}">${bucketLabel(label)}</text>` : '').join('');
-  const showCounts = Boolean(b) && domain.length <= 12;
+  const labels = domain.map((label,i) => i % step === 0 || i === domain.length - 1 ? `<text class="axis-label" text-anchor="middle" x="${pointX(i,domain.length,p,w-p)}" y="${h-5}">${bucketLabel(label)}</text>` : '').join('');
+  const showCounts = domain.length <= 12;
   const points = (vals, series, name, offset) => pts(vals).map(([x,y],i) => {
     const labelY = Math.max(12, Math.min(h - 10, y + offset));
     return `<g><circle class="chart-point ${series}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${bucketLabel(domain[i])} · ${name}: ${fmt(vals[i])}</title></circle>${showCounts ? `<text class="chart-value ${series}" text-anchor="middle" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}">${fmt(vals[i])}</text>` : ''}</g>`;
   }).join('');
-  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}<path class="${b?'area-a':'area-like'}" d="${area(a)}"/><path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${b?`<path class="line-b" d="${path(b)}"/>${points(a,'registration','Registrations',-10)}${points(b,'login','Logins',16)}`:''}${labels}`;
+  const areaMarkup = a.length > 1 ? `<path class="${b?'area-a':'area-like'}" d="${area(a)}"/>` : '';
+  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}${areaMarkup}<path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${points(a,b?'registration':'like',b?'Registrations':'Likes',-10)}${b?`<path class="line-b" d="${path(b)}"/>${points(b,'login','Logins',16)}`:''}${labels}`;
 }
 
 function renderRevenueChart(points = []) {
@@ -235,32 +258,36 @@ function renderRevenueChart(points = []) {
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No revenue activity in this range</text>';
     return;
   }
+  points = normalizeTemporalRows(points, 'amount');
   const values = points.map(point => Number(point.amount) || 0);
   const min = Math.min(0, ...values), max = Math.max(0, ...values), range = Math.max(1, max - min);
   const y = value => p + (max - value) / range * (h - p * 2);
-  const baseline = y(0), slot = (w - p * 2) / values.length, barWidth = Math.max(5, Math.min(28, slot * 0.58));
+  const baseline = y(0), slot = (w - p * 2) / values.length, barWidth = Math.max(1, Math.min(28, slot * 0.58));
   const bars = values.map((value, index) => {
-    const top = Math.min(y(value), baseline), height = Math.max(2, Math.abs(y(value) - baseline));
+    const top = Math.min(y(value), baseline), height = value ? Math.max(2, Math.abs(y(value) - baseline)) : 0;
     return `<rect class="revenue-bar ${value < 0 ? 'negative' : ''}" x="${(p + index * slot + (slot - barWidth) / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${height.toFixed(1)}" rx="4"><title>${points[index].label}: ${money(value)}</title></rect>`;
   }).join('');
   const step = Math.max(1, Math.ceil(points.length / 5));
-  const labels = points.map((point,index) => index % step === 0 ? `<text class="axis-label" text-anchor="middle" x="${(p + index * slot + slot / 2).toFixed(1)}" y="${h - 6}">${point.label.slice(5)}</text>` : '').join('');
+  const labels = points.map((point,index) => index % step === 0 || index === points.length - 1 ? `<text class="axis-label" text-anchor="middle" x="${(p + index * slot + slot / 2).toFixed(1)}" y="${h - 6}">${bucketLabel(point.label)}</text>` : '').join('');
   svg.innerHTML = `<line class="grid-line" x1="${p}" y1="${baseline}" x2="${w-p}" y2="${baseline}"/>${bars}${labels}`;
 }
 
 function renderActivityCostChart(data) {
-  const points = data.dailyCosts || [];
+  const rawPoints = data.dailyCosts || [];
   const svg = qs('#activityCostChart'), w = 760, h = 210, p = 34;
-  if (!points.length) {
+  if (!rawPoints.length) {
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No query cost activity in this range</text>';
     qs('#latestDailyCost').textContent = '—';
     return;
   }
+  const activityDomain = dailyBuckets(data.trendFromDate || rawPoints[0].label, dateRange().toDate);
+  const amounts = new Map(rawPoints.map(point => [String(point.label).slice(0, 10), point]));
+  const points = activityDomain.map(label => ({ label, amount: Number(amounts.get(label)?.amount) || 0, interactions: Number(amounts.get(label)?.interactions) || 0 }));
   const values = points.map(point => Number(point.amount) || 0);
   const max = Math.max(1, ...values), slot = (w - p * 2) / values.length;
   const barWidth = Math.max(5, Math.min(28, slot * 0.58));
   const bars = values.map((value, index) => {
-    const height = Math.max(2, value / max * (h - p * 2));
+    const height = value ? Math.max(2, value / max * (h - p * 2)) : 0;
     const x = p + index * slot + (slot - barWidth) / 2;
     const y = h - p - height;
     return `<rect class="activity-cost-bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${height.toFixed(1)}" rx="4"><title>${formatDate(points[index].label)} · ${crore(value)} · ${fmt(points[index].interactions)} interactions</title></rect>`;
@@ -297,11 +324,19 @@ function renderAmplitudeChart(selector, primary = [], secondary = null) {
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No Amplitude activity in this range</text>';
     return;
   }
+  const { fromDate, toDate } = dateRange();
+  const domain = dailyBuckets(fromDate, toDate);
+  const normalizeDaily = rows => {
+    const byDate = new Map(rows.map(point => [String(point.label).slice(0, 10), Number(point.count) || 0]));
+    return domain.map(label => ({ label, count: byDate.get(label) || 0 }));
+  };
+  primary = normalizeDaily(primary);
+  secondary = secondary ? normalizeDaily(secondary) : null;
   const labels = primary.map(point => point.label);
   const first = primary.map(point => Number(point.count) || 0);
   const second = secondary ? secondary.map(point => Number(point.count) || 0) : null;
   const max = Math.max(1, ...first, ...(second || []));
-  const x = index => p + index * (w - p * 2) / Math.max(1, labels.length - 1);
+  const x = index => pointX(index, labels.length, p, w - p);
   const y = value => h - p - value / max * (h - p * 2);
   const path = values => values.map((value, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(' ');
   const grids = [0, .5, 1].map(value => `<line class="grid-line" x1="${p}" y1="${p + value * (h - p * 2)}" x2="${w - p}" y2="${p + value * (h - p * 2)}"/>`).join('');
@@ -319,10 +354,14 @@ function renderDauChart(points = []) {
     svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="axis-label">No active-user activity in this range</text>';
     return;
   }
+  const { fromDate, toDate } = dateRange();
+  const domain = dailyBuckets(fromDate, toDate);
+  const byDate = new Map(points.map(point => [String(point.label).slice(0, 10), Number(point.count) || 0]));
+  points = domain.map(label => ({ label, count: byDate.get(label) || 0 }));
   const values = points.map(point => Number(point.count) || 0);
   const maxValue = Math.max(1, ...values);
   const ceiling = Math.max(100, Math.ceil(maxValue / 100) * 100);
-  const x = index => left + index * (w - left - right) / Math.max(1, points.length - 1);
+  const x = index => pointX(index, points.length, left, w - right);
   const y = value => top + (ceiling - value) / ceiling * (h - top - bottom);
   const coordinates = values.map((value, index) => ({ x: x(index), y: y(value) }));
   const linePath = coordinates.reduce((path, point, index) => {
@@ -332,7 +371,7 @@ function renderDauChart(points = []) {
     return `${path} C${midpoint.toFixed(1)},${previous.y.toFixed(1)} ${midpoint.toFixed(1)},${point.y.toFixed(1)} ${point.x.toFixed(1)},${point.y.toFixed(1)}`;
   }, '');
   const baseY = h - bottom;
-  const areaPath = `${linePath} L${coordinates.at(-1).x.toFixed(1)},${baseY} L${coordinates[0].x.toFixed(1)},${baseY} Z`;
+  const areaPath = points.length > 1 ? `${linePath} L${coordinates.at(-1).x.toFixed(1)},${baseY} L${coordinates[0].x.toFixed(1)},${baseY} Z` : '';
   const yTicks = [0, .25, .5, .75, 1].map(ratio => {
     const value = Math.round(ceiling * (1 - ratio));
     const lineY = top + ratio * (h - top - bottom);
@@ -347,7 +386,7 @@ function renderDauChart(points = []) {
     const point = coordinates[index], badgeY = Math.max(18, point.y - 18);
     return `<g class="dau-marker ${className}"><circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="6"/><circle class="pulse" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="11"/><text text-anchor="middle" x="${point.x.toFixed(1)}" y="${badgeY.toFixed(1)}">${label} · ${fmt(values[index])}</text></g>`;
   };
-  svg.innerHTML = `<defs><linearGradient id="dauArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9f13b" stop-opacity=".38"/><stop offset=".6" stop-color="#64a8ff" stop-opacity=".09"/><stop offset="1" stop-color="#64a8ff" stop-opacity="0"/></linearGradient><filter id="dauGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${yTicks}<path class="dau-area" d="${areaPath}"/><path class="dau-line-glow" d="${linePath}"/><path class="dau-line" d="${linePath}"/>${markers}${badge(peakIndex, 'Peak', 'peak')}${latestIndex !== peakIndex ? badge(latestIndex, 'Latest', 'latest') : ''}${xTicks}`;
+  svg.innerHTML = `<defs><linearGradient id="dauArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9f13b" stop-opacity=".38"/><stop offset=".6" stop-color="#64a8ff" stop-opacity=".09"/><stop offset="1" stop-color="#64a8ff" stop-opacity="0"/></linearGradient><filter id="dauGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${yTicks}${areaPath ? `<path class="dau-area" d="${areaPath}"/>` : ''}<path class="dau-line-glow" d="${linePath}"/><path class="dau-line" d="${linePath}"/>${markers}${badge(peakIndex, points.length === 1 ? 'Today' : 'Peak', 'peak')}${latestIndex !== peakIndex ? badge(latestIndex, 'Latest', 'latest') : ''}${xTicks}`;
 }
 
 function renderAmplitude(data) {
@@ -507,10 +546,10 @@ async function refreshAddendumData() {
 function renderBars(rows = []) {
   const el = qs('#listingBars');
   if (!rows.length) { el.innerHTML = '<p class="section-note">No activity in this range</p>'; return; }
-  const recent = rows.slice(-10);
+  const recent = normalizeTemporalRows(rows).slice(-10);
   const values = recent.map(row => Number(row.count) || 0);
   const max = Math.max(1, ...values);
-  el.innerHTML = recent.map((row,i) => `<div class="bar-unit" data-day="${bucketLabel(row.label)}"><span style="height:${Math.max(3,values[i]/max*100)}%" title="${bucketLabel(row.label)} · ${fmt(values[i])} listings"></span></div>`).join('');
+  el.innerHTML = recent.map((row,i) => `<div class="bar-unit" data-day="${bucketLabel(row.label)}"><span style="height:${values[i] ? Math.max(3,values[i]/max*100) : 0}%" title="${bucketLabel(row.label)} · ${fmt(values[i])} listings"></span></div>`).join('');
 }
 function renderMix(obj = {}, expectedTotal = 0) {
   const total = Object.values(obj).reduce((a,b) => a+b, 0), colors = ['#a8df2d','#64a8ff','#9b87ff','#ffad5b','#a6b0ac'];
@@ -561,8 +600,25 @@ function render() {
     ? (Number(d.trackedLikesInRange) / Number(d.trackedListingsInRange)).toFixed(2)
     : 'N/A';
   qs('#likesScopeNote').textContent = d.likesScopeNote;
+  const periodWord = state.groupBy === 'month' ? 'Monthly' : 'Daily';
+  qs('#growthChartSubtitle').textContent = `${periodWord} registrations and successful logins`;
+  qs('#listingChartSubtitle').textContent = `New listings by ${state.groupBy === 'month' ? 'month' : 'day'}`;
+  qs('#likesChartSubtitle').textContent = `${periodWord} date-ranged likes`;
   renderContributors(d.contributors);
   renderCities(d.cities);
+}
+
+function renderReconciliationAudit({ overview, userOverview, loginOverview, registrationTrend, loginTrend, listingOverview, listingTrend, likeOverview, likeTrend }) {
+  const sum = rows => (rows || []).reduce((total, row) => total + (Number(row.count) || 0), 0);
+  const issues = [];
+  if (Number(overview.newUsersInRange) !== Number(userOverview.newUsersInRange)) issues.push('overview and user registration totals differ');
+  if (Number(overview.newUsersInRange) !== sum(registrationTrend)) issues.push('registration headline and graph differ');
+  if (Number(loginOverview.successfulLogins) !== sum(loginTrend)) issues.push('successful-login headline and graph differ');
+  if (!qs('#typeSelect').value && Number(listingOverview.newListingsInRange) !== sum(listingTrend)) issues.push('listing headline and graph differ');
+  if (Number(likeOverview.totalLikesInRange) !== sum(likeTrend)) issues.push('likes headline and graph differ');
+  const warning = qs('#dashboardAuditError');
+  warning.hidden = !issues.length;
+  warning.textContent = issues.length ? `Data reconciliation warning: ${issues.join('; ')}.` : '';
 }
 function clearDashboard(message) {
   ['#totalUsers','#newUsers','#activeUsers','#activeListings','#newListings','#newLikes','#demandLikes','#uniqueUsers','#growthRate','#successRate','#mixTotal','#registrationCount','#loginCount','#likesPerListing'].forEach(id => qs(id).textContent='—');
@@ -595,6 +651,7 @@ async function refresh() {
     const cityTotals={users:userCities.reduce((t,x)=>t+(Number(x.count)||0),0),logins:loginCities.reduce((t,x)=>t+(Number(x.count)||0),0),listings:listingCities.reduce((t,x)=>t+(Number(x.count)||0),0),likes:likeCities.reduce((t,x)=>t+(Number(x.count)||0),0)};
     const trackedListingsInRange = reliableMix.Mandate + reliableMix.Requirement;
     state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,trackedListingsInRange,trackedLikesInRange:Number(likeOverview.totalLikesInRange)||0,likesScopeNote:likeOverview.scopeNote||'Covers date-ranged likes on Mandate and Requirement listings only.',contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
+    renderReconciliationAudit({ overview, userOverview, loginOverview, registrationTrend: reg, loginTrend: logins, listingOverview, listingTrend: listings, likeOverview, likeTrend: likes });
     const growthRate=userOverview.growthRatePercent, successRate=loginOverview.successRatePercent;
     qs('#growthRate').textContent=growthRate == null ? 'N/A' : `${Number(growthRate)>=0?'+':''}${Number(growthRate).toFixed(1)}%`;
     qs('#successRate').textContent=successRate == null ? 'N/A' : `${Number(successRate).toFixed(1)}%`;
@@ -609,6 +666,7 @@ async function refresh() {
     state.data=null;
     state.live=false;
     clearDashboard(error.message);
+    qs('#dashboardAuditError').hidden = true;
     showToast(error.message);
   }
   await refreshAddendumData();

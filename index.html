@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1917'/%3E%3Cpath d='M16 44V18h17c9 0 14 4 14 11 0 4-2 7-6 8 5 1 7 4 7 8H35c0-3-2-4-6-4h-2v3H16zm11-14h6c2 0 3-1 3-3s-1-3-3-3h-6v6z' fill='%23c9ff4a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css?v=20261010-23" />
+  <link rel="stylesheet" href="styles.css?v=20261010-24" />
 </head>
 <body class="auth-pending">
   <section class="login-screen" id="loginScreen" aria-labelledby="loginTitle">
@@ -95,11 +95,12 @@
           <div><p class="eyebrow">THIS PERIOD</p><p id="executiveInsight">Acquisition is outpacing listing growth. Activation remains the clearest opportunity.</p></div>
           <span class="live-chip" id="dataMode">CONNECTING</span>
         </section>
+        <div class="section-error" id="dashboardAuditError" hidden></div>
 
         <section id="overview" class="metric-grid" aria-label="Headline metrics">
           <article class="metric-card featured"><div class="metric-icon">◎</div><div class="metric-label">Total users</div><div class="metric-value" id="totalUsers">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
           <article class="metric-card"><div class="metric-icon">+</div><div class="metric-label">New users</div><div class="metric-value" id="newUsers">—</div><div class="metric-foot"><span>Live metric</span><span>in range</span></div></article>
-          <article class="metric-card"><div class="metric-icon">◉</div><div class="metric-label">Active users</div><div class="metric-value" id="activeUsers">—</div><div class="metric-foot"><span>Live metric</span><span>in range</span></div></article>
+          <article class="metric-card"><div class="metric-icon">◉</div><div class="metric-label">Users who logged in</div><div class="metric-value" id="activeUsers">—</div><div class="metric-foot"><span>Unique successful logins</span><span>in range</span></div></article>
           <article class="metric-card"><div class="metric-icon">⌂</div><div class="metric-label">Active listings</div><div class="metric-value" id="activeListings">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
           <article class="metric-card"><div class="metric-icon">▤</div><div class="metric-label">New listings</div><div class="metric-value" id="newListings">—</div><div class="metric-foot"><span>Live metric</span><span>this period</span></div></article>
           <article class="metric-card"><div class="metric-icon">♡</div><div class="metric-label">Mandate &amp; Requirement likes</div><div class="metric-value" id="newLikes">—</div><div class="metric-foot"><span>Selected period</span><span>Sale/Rent excluded</span></div></article>
@@ -109,12 +110,12 @@
           <div class="section-heading"><div><p class="eyebrow">01 · GROWTH & RETENTION</p><h2>Audience momentum</h2></div><div class="legend"><span><i class="lime"></i> Registrations <b id="registrationCount">—</b></span><span><i class="blue"></i> Logins <b id="loginCount">—</b></span></div></div>
           <div class="growth-layout">
             <article class="panel chart-panel">
-              <div class="panel-head"><div><h3>Acquisition vs. engagement</h3><p>Daily registrations and successful logins</p></div><div class="segmented" role="group" aria-label="Chart grouping"><button class="active" data-group="day">Day</button><button data-group="month">Month</button></div></div>
+              <div class="panel-head"><div><h3>Acquisition vs. engagement</h3><p id="growthChartSubtitle">Daily registrations and successful logins</p></div><div class="segmented" role="group" aria-label="Chart grouping"><button class="active" data-group="day">Day</button><button data-group="month">Month</button></div></div>
               <div class="chart-wrap"><svg id="trendChart" viewBox="0 0 760 260" role="img" aria-label="Registrations and logins trend"></svg></div>
             </article>
             <div class="score-stack">
               <article class="score-card dark"><div><p class="eyebrow">USER GROWTH</p><strong id="growthRate">—</strong><p>Net growth this period</p></div><svg class="mini-ring" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30"/><circle class="ring-progress" cx="40" cy="40" r="30" stroke-dasharray="128 188"/></svg></article>
-              <article class="score-card"><div><p class="eyebrow">LOGIN SUCCESS</p><strong id="successRate">—</strong><p><span id="uniqueUsers">—</span> unique active users</p></div><div class="gauge"><span style="--score:0"></span></div></article>
+              <article class="score-card"><div><p class="eyebrow">LOGIN SUCCESS</p><strong id="successRate">—</strong><p><span id="uniqueUsers">—</span> unique users logged in</p></div><div class="gauge"><span style="--score:0"></span></div></article>
             </div>
           </div>
         </section>
@@ -147,7 +148,7 @@
               <p class="scope-note" id="supplyDataNote"></p>
             </article>
             <article class="panel supply-trend-panel">
-              <div class="panel-head"><div><h3>Listing velocity</h3><p>New listings by day</p></div><select id="typeSelect" aria-label="Transaction type"><option value="">All types</option><option>Sale</option><option>Rent</option><option>Mandate</option><option>Requirement</option></select></div>
+              <div class="panel-head"><div><h3>Listing velocity</h3><p id="listingChartSubtitle">New listings by day</p></div><select id="typeSelect" aria-label="Transaction type"><option value="">All types</option><option>Sale</option><option>Rent</option><option>Mandate</option><option>Requirement</option></select></div>
               <div class="bar-spark" id="listingBars" aria-label="Listing trend"></div>
             </article>
             <article class="panel leaderboard-panel">
@@ -161,7 +162,7 @@
           <div class="section-heading"><div><p class="eyebrow">04 · DEMAND</p><h2>Deal-card engagement</h2></div><button class="info-btn" id="scopeInfo" aria-expanded="false">i <span id="likesScopeNote">Measures date-ranged likes on Mandate and Requirement listings only.</span></button></div>
           <div class="demand-layout">
             <article class="demand-hero"><div><p>Mandate &amp; Requirement likes</p><strong id="demandLikes">—</strong><span>Selected-period total · Sale &amp; Rent excluded</span></div><div class="demand-orbit"><span>♡</span></div></article>
-            <article class="panel demand-chart"><div class="panel-head"><div><h3>Mandate &amp; Requirement engagement</h3><p>Daily date-ranged likes</p></div><span class="metric-annotation"><b id="likesPerListing">—</b> likes / new Mandate or Requirement listing</span></div><div class="chart-wrap compact"><svg id="likesChart" viewBox="0 0 760 180" role="img" aria-label="Mandate and Requirement likes trend"></svg></div></article>
+            <article class="panel demand-chart"><div class="panel-head"><div><h3>Mandate &amp; Requirement engagement</h3><p id="likesChartSubtitle">Daily date-ranged likes</p></div><span class="metric-annotation"><b id="likesPerListing">—</b> likes / new Mandate or Requirement listing</span></div><div class="chart-wrap compact"><svg id="likesChart" viewBox="0 0 760 180" role="img" aria-label="Mandate and Requirement likes trend"></svg></div></article>
           </div>
         </section>
 
@@ -245,6 +246,6 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20261010-23"></script>
+  <script src="app.js?v=20261010-24"></script>
 </body>
 </html>

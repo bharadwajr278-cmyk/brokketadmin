@@ -75,3 +75,20 @@ Correction: the dashboard explicitly labels the KPI and denominator as Mandate/R
 3. Document and correct the unit of `totalQueryCost` in the backend contract.
 4. Supply the actual Amplitude app-install event name, or instrument one consistently across Android and iOS.
 5. Grant read-only database/reporting access if record-level validation (duplicates, missing rows, historical backfills) is required beyond API-level reconciliation.
+
+## Graph and date-filter validation
+
+Validated on 10 October 2026 against 1-day, 7-day, 30-day, and 12-month API ranges using both daily and monthly grouping.
+
+- Registration trend sums reconcile with the new-user headline in every tested range.
+- Successful-login trend sums reconcile with the login overview in every tested range.
+- Listing trend sums reconcile with the listing overview in every tested range.
+- Likes trend sums reconcile with the date-ranged likes headline in every tested range.
+- Revenue trend sums reconcile with `revenueInRange`; for 11 September–10 October the sum is ₹45,585.
+- Preset ranges now use Asia/Kolkata calendar dates and include today exactly once.
+- Missing time buckets are rendered as zero instead of being skipped, so gaps are not visually compressed.
+- Single-day line charts render a centered point rather than a misleading triangular area.
+- Zero-value bars have zero height rather than appearing as small positive values.
+- Daily/monthly subtitles update with the selected grouping.
+- The headline previously labelled “Active users” is now “Users who logged in,” matching its backend definition: unique users with a successful login in the selected range.
+- A runtime reconciliation guard now displays a dashboard warning if headline totals diverge from graph totals.
