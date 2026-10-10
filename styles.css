@@ -533,6 +533,9 @@ main {
   padding: 17px;
   min-height: 156px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   box-shadow: 0 3px 16px rgba(16, 35, 31, 0.025);
 }
 .metric-card.featured {
@@ -556,16 +559,24 @@ main {
   color: var(--ink);
 }
 .metric-label {
+  display: flex;
+  align-items: flex-end;
+  min-height: 34px;
   font-size: 12px;
+  line-height: 1.35;
   color: var(--muted);
 }
 .featured .metric-label {
   color: #91a29d;
 }
 .metric-value {
+  display: flex;
+  align-items: center;
+  min-height: 37px;
   font: 700 29px/1.25 Manrope;
   letter-spacing: -1px;
   margin-top: 3px;
+  white-space: nowrap;
 }
 
 [data-count-value] {
@@ -579,7 +590,7 @@ main {
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  margin-top: 13px;
+  margin-top: auto;
   padding-top: 11px;
   border-top: 1px solid var(--line);
   font-size: 10px;
