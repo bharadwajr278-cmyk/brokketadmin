@@ -59,6 +59,12 @@ test('empty recipient values are rejected', () => {
   assert.throws(() => resolveRecipients([], { REPORT_RECIPIENT: '', REPORT_CC: '' }), error => error.code === 'RECIPIENTS_EMPTY');
 });
 
+test('explicit manual recipients override environment defaults', () => {
+  assert.deepEqual(resolveRecipients(['tech@brokket.com'], env), {
+    to: ['tech@brokket.com'], cc: [], all: ['tech@brokket.com'],
+  });
+});
+
 test('recipient-specific SMTP rejection is reported without claiming inbox delivery', async () => {
   const capture = loggerCapture();
   const result = await sendDailyReport({
@@ -90,6 +96,31 @@ test('authentication failures are sanitized and secrets are never logged', async
   const logs = capture.entries.join('\n');
   assert.doesNotMatch(logs, new RegExp(env.GMAIL_APP_PASSWORD));
   assert.match(logs, /SMTP_AUTH_FAILED/);
+});
+
+test('Gmail falls back to legacy SMTP credentials after new credential authentication failure', async () => {
+  const attempts = [];
+  const fallbackEnv = {
+    ...env,
+    SMTP_USER: 'legacy@gmail.com',
+    SMTP_APP_PASSWORD: 'legacy-app-password',
+  };
+  const result = await sendDailyReport({
+    dataset, pdf, recipients: ['tech@brokket.com'], env: fallbackEnv,
+    createTransport: options => ({ sendMail: async message => {
+      attempts.push({ options, message });
+      if (options.auth.user === fallbackEnv.GMAIL_ADDRESS) throw Object.assign(new Error('auth failed'), { code: 'EAUTH' });
+      return { messageId: '<legacy@gmail.com>', response: '250 OK', accepted: ['tech@brokket.com'], rejected: [] };
+    } }),
+    logger: loggerCapture().logger,
+    delayImpl: async () => {},
+    claimDelivery: async () => true,
+  });
+  assert.equal(attempts.length, 2);
+  assert.equal(attempts[1].options.auth.user, fallbackEnv.SMTP_USER);
+  assert.equal(attempts[1].message.from, fallbackEnv.SMTP_USER);
+  assert.deepEqual(attempts[1].message.envelope.to, ['tech@brokket.com']);
+  assert.equal(result.status, 'sent-to-mail-server');
 });
 
 test('delivery claim prevents a retry from sending the same report twice', async () => {
