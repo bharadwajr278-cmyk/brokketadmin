@@ -7,6 +7,9 @@
   "engines": {
     "node": "24.x"
   },
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@vercel/blob": "^2.8.1",
     "nodemailer": "10.0.9",

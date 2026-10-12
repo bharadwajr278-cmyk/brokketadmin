@@ -24,10 +24,12 @@ module.exports = async function handler(request, response) {
   const date = currentIstDate();
   try {
     const force = String(request.query?.force || '') === '1';
-    const existing = force ? null : (await store.listReports(90)).find(report => report.date === date && report.status === 'delivered');
-    if (existing) return response.status(200).json({ success: true, skipped: true, message: `Report ${date} was already delivered.` });
+    const acceptedStatuses = new Set(['sent-to-mail-server', 'partially-sent-to-mail-server', 'duplicate-prevented', 'delivered', 'partially-delivered']);
+    const existing = force ? null : (await store.listReports(90)).find(report => report.date === date && acceptedStatuses.has(report.status));
+    if (existing) return response.status(200).json({ success: true, skipped: true, message: `Report ${date} was already submitted to the mail server.` });
     const report = await runDailyReport({ date, scheduled: true, email: true });
-    return response.status(report.status === 'delivered' ? 200 : 207).json({ success: report.status === 'delivered', data: report });
+    const accepted = acceptedStatuses.has(report.status);
+    return response.status(accepted ? 200 : 207).json({ success: accepted, data: report });
   } catch (error) {
     console.error(JSON.stringify({ event: 'daily_report_cron_failed', date, message: error.message }));
     return response.status(500).json({ success: false, message: error.message || 'Scheduled report failed.' });

@@ -135,12 +135,20 @@ function showReportLoadError(error) {
 }
 
 function renderReportHistory(reports = []) {
+  const statusLabels = {
+    'sent-to-mail-server': 'Sent to mail server',
+    'partially-sent-to-mail-server': 'Partially accepted',
+    'duplicate-prevented': 'Duplicate prevented',
+    'delivery-failed': 'Sending failed',
+    delivered: 'Sent to mail server',
+    'partially-delivered': 'Partially accepted',
+  };
   qs('#reportRows').innerHTML = reports.length ? reports.map(report => {
     const recipients = (report.recipients || []).join(', ') || 'Not requested';
     const generated = report.generatedAt ? new Date(report.generatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '—';
     const status = String(report.status || 'generated');
     const reportUrl = `/api/reports?download=${encodeURIComponent(report.pathname)}&view=1`;
-    return `<div class="report-row" role="row"><span><b>${escapeHtml(formatDate(report.date))}</b></span><span><i class="report-status ${escapeHtml(status)}">${escapeHtml(status.replaceAll('-', ' '))}</i></span><span title="${escapeHtml(recipients)}">${escapeHtml(recipients)}</span><span>${escapeHtml(generated)}</span><span><a class="report-download" href="${reportUrl}" target="_blank" rel="noopener">Open PDF</a></span></div>`;
+    return `<div class="report-row" role="row"><span><b>${escapeHtml(formatDate(report.date))}</b></span><span><i class="report-status ${escapeHtml(status)}">${escapeHtml(statusLabels[status] || status.replaceAll('-', ' '))}</i></span><span title="${escapeHtml(recipients)}">${escapeHtml(recipients)}</span><span>${escapeHtml(generated)}</span><span><a class="report-download" href="${reportUrl}" target="_blank" rel="noopener">Open PDF</a></span></div>`;
   }).join('') : '<div class="report-empty">No reports generated yet.</div>';
 }
 
@@ -150,7 +158,7 @@ async function loadReports() {
   setReportHealth('#reportStorageState', configuration.storage, 'Ready', 'Setup required');
   setReportHealth('#reportEmailState', configuration.email, 'Ready', 'Setup required');
   setReportHealth('#reportSchedulerState', configuration.scheduler, 'Active', 'Setup required');
-  qs('#reportRecipients').value = (data.settings?.recipients || ['bharadwajr278@gmail.com']).join('\n');
+  qs('#reportRecipients').value = (data.settings?.recipients || []).join('\n');
   qs('#reportSendEmail').checked = data.settings?.sendEmail !== false;
   renderReportHistory(data.reports || []);
   qs('#reportFeedback').classList.remove('error');
@@ -183,7 +191,11 @@ async function generateDailyReport() {
     if (reportDate > istToday()) throw new Error('The reporting date cannot be in the future.');
     await reportsApi('POST', { action: 'settings', recipients: reportRecipients(), sendEmail: qs('#reportSendEmail').checked });
     const report = await reportsApi('POST', { action: 'generate', date: reportDate, email: qs('#reportSendEmail').checked });
-    qs('#reportFeedback').textContent = report.status === 'delivered' ? 'Report generated, archived and emailed successfully.' : `Report generated with status: ${report.status}. ${report.delivery?.message || ''}`;
+    qs('#reportFeedback').textContent = report.status === 'sent-to-mail-server'
+      ? 'Report generated, archived and accepted by the mail server. Inbox delivery is not confirmed.'
+      : report.status === 'duplicate-prevented'
+        ? 'Report generated and archived. A duplicate email was prevented.'
+        : `Report generated with status: ${report.status}. ${report.delivery?.message || ''}`;
     await loadReports();
   } catch (error) { qs('#reportFeedback').classList.add('error'); qs('#reportFeedback').textContent = error.message; }
   button.disabled = false; button.textContent = 'Generate report';

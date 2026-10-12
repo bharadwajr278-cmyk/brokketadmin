@@ -23,9 +23,11 @@ AMPLITUDE_API_KEY=<Amplitude project API key>
 AMPLITUDE_SECRET_KEY=<Amplitude project secret key>
 AMPLITUDE_INSTALL_EVENT=app_install_event
 AMPLITUDE_PLATFORM_PROPERTY=platform
-REPORT_DEFAULT_RECIPIENT=bharadwajr278@gmail.com
-RESEND_API_KEY=<Resend API key>
-REPORT_EMAIL_FROM="Brokket CEO Dashboard <reports@your-verified-domain.com>"
+REPORT_EMAIL_PROVIDER=gmail
+GMAIL_ADDRESS=<authenticated Gmail address>
+GMAIL_APP_PASSWORD=<Google app password>
+REPORT_RECIPIENT=<primary report recipient>
+REPORT_CC=<report copy recipient>
 CRON_SECRET=<long random secret>
 BROKKET_REPORT_PHONE=<dedicated ADMIN reporting account phone>
 BROKKET_REPORT_COUNTRY_CODE=+91
@@ -42,7 +44,13 @@ Amplitude credentials are used only by the server-side `/api/amplitude` proxy wi
 
 The **Daily Reports** dashboard section generates professional PDF snapshots, securely archives them in a private Vercel Blob store, tracks delivery status, and supports authenticated downloads and recipient configuration. The Vercel Cron route runs at `13:00 UTC` (`18:30 IST`) and reports the current IST calendar day through the scheduled run time. The scheduler uses a dedicated ADMIN service account because browser sessions expire after eight hours.
 
-Email delivery uses Resend with three automatic attempts. Configure a verified sender in `REPORT_EMAIL_FROM`; `onboarding@resend.dev` should only be used for initial tests permitted by your Resend account. PDF and API generation errors are logged as structured JSON in Vercel Functions logs and preserved in report metadata where possible.
+Email delivery defaults to Gmail SMTP and sends one multipart message with `REPORT_RECIPIENT` in **To** and `REPORT_CC` in **Cc**. The RFC5322 From header and SMTP envelope sender are always the authenticated `GMAIL_ADDRESS`; an unrelated `@brokket.com` From address is never substituted. Gmail SMTP acceptance is recorded as **Sent to mail server**, not inbox delivery. A private delivery lock prevents retries from sending the same reporting date/recipient combination twice. PDF, API, authentication, timeout and recipient-rejection failures are logged as structured JSON without credentials and are preserved in report metadata where possible.
+
+The legacy `SMTP_USER` and `SMTP_APP_PASSWORD` names are temporarily accepted for a safe migration, but new deployments should use `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD`. Configure all values as encrypted Vercel environment variables; never commit them.
+
+### Optional verified-domain provider
+
+Resend support remains available but is not enabled automatically when Gmail is configured. To opt in after approval, set `REPORT_EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `REPORT_EMAIL_FROM` to a sender on a verified domain. A production `brokket.com` sender should publish the provider's DKIM records, include that provider in the domain SPF policy, and publish a DMARC policy (start with monitoring, then tighten after reviewing reports). Postmark, Amazon SES, or Google Workspace can be substituted later using the same verified-domain approach; no provider switch is performed by this change.
 
 Connect a **private** Vercel Blob store to the project. The generated PDFs are never exposed as public Blob URLs: downloads stream through the authenticated `/api/reports` endpoint. Circle activity, Clips, Blinks, and any other metric not exposed by the current APIs are disclosed as unavailable and are never estimated.
 
