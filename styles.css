@@ -1727,14 +1727,29 @@ main {
   font-size: 9px;
 }
 
-.autopay-status {
+.payment-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 9px;
+}
+
+.payment-status-head small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.payment-status {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: 14px;
+  margin-top: 7px;
 }
 
-.autopay-status span {
+.payment-status span {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -1745,14 +1760,14 @@ main {
   font-size: 8px;
 }
 
-.autopay-status i {
+.payment-status i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--lime-2);
 }
 
-.autopay-status b {
+.payment-status b {
   color: var(--ink);
 }
 

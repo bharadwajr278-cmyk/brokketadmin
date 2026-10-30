@@ -196,21 +196,22 @@
             <article class="subscription-kpi"><span>Including trials</span><strong id="activeIncludingTrial">—</strong><small>active entitlements</small></article>
             <article class="subscription-kpi"><span>Autopay on</span><strong id="autopayOn">—</strong><small>active mandates</small></article>
             <article class="subscription-kpi"><span>Autopay off</span><strong id="autopayOff">—</strong><small>not churned</small></article>
-            <article class="subscription-kpi"><span>Customers who paid</span><strong id="uniquePayers">—</strong><small>different customers with ≥1 recorded payment</small></article>
-            <article class="subscription-kpi"><span>Payment transactions</span><strong id="subscriptionsSold">—</strong><small>total recorded purchases + renewals</small></article>
+            <article class="subscription-kpi"><span>Paying customers</span><strong id="uniquePayers">—</strong><small>unique customers · Brokket CRM</small></article>
+            <article class="subscription-kpi"><span>Successful payments</span><strong id="subscriptionsSold">—</strong><small>completed transactions · Brokket CRM</small></article>
             <article class="subscription-kpi"><span>Revenue in range</span><strong id="revenueInRange">—</strong><small>net of refunds</small></article>
             <article class="subscription-kpi"><span>Tracked revenue</span><strong id="revenueAllTime">—</strong><small>since ledger launch</small></article>
           </div>
-          <p class="subscription-explainer"><b>Customers and payments are different:</b> one customer can purchase or renew more than once, so payment transactions can be higher than customers who paid.</p>
+          <p class="subscription-explainer"><b>Customers and payments are different:</b> one customer can pay more than once. Payment status and customer counts below use the same source and definitions as Brokket CRM.</p>
           <div class="subscription-layout">
             <article class="panel revenue-chart-panel">
               <div class="panel-head"><div><h3>Net revenue trend</h3><p>Purchases and renewals minus completed refunds</p></div><div class="revenue-events"><span><b id="newPurchases">—</b> purchases</span><span><b id="renewals">—</b> renewals</span></div></div>
               <div class="chart-wrap compact"><svg id="revenueChart" viewBox="0 0 760 210" role="img" aria-label="Subscription net revenue trend"></svg></div>
             </article>
             <article class="panel plan-panel">
-              <div class="panel-head"><div><h3>Plan & mandate mix</h3><p>Active entitlements by plan; not unique payers</p></div></div>
+              <div class="panel-head"><div><h3>Plan mix & payment status</h3><p>Plans are active entitlements; payment counts match Brokket CRM</p></div></div>
               <div class="plan-breakdown" id="planBreakdown"></div>
-              <div class="autopay-status" id="autopayStatus"></div>
+              <div class="payment-status-head"><b>Payment status</b><small>Selected period · CRM source</small></div>
+              <div class="payment-status" id="paymentStatus"></div>
             </article>
           </div>
           <article class="panel roster-panel">

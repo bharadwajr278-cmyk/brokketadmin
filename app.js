@@ -214,6 +214,17 @@ async function propertyActivityApi() {
   return body.data;
 }
 
+async function paymentSummaryApi() {
+  const query = params({}, { city: false });
+  const response = await fetch(`/api/payments?${query}`, {
+    signal: AbortSignal.timeout(25000), cache: 'no-store', credentials: 'same-origin'
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard(body?.message || 'Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `Payment request failed (${response.status})`);
+  return body.data;
+}
+
 async function amplitudeApi() {
   const query = params({}, { city: false });
   const response = await fetch(`/api/amplitude?${query}`, {
@@ -604,14 +615,12 @@ function renderSubscriptions(data) {
   const values = [
     ['#activeSubscribers', data.totalActiveSubscribers], ['#activeIncludingTrial', data.totalActiveIncludingTrial],
     ['#autopayOn', data.autopayOnCount], ['#autopayOff', data.autopayOffCount],
-    ['#uniquePayers', data.totalUniquePayingSubscribersAllTime], ['#subscriptionsSold', data.totalSubscriptionsSoldAllTime],
     ['#newPurchases', data.newPurchasesInRange], ['#renewals', data.renewalsInRange]
   ];
   values.forEach(([id, value]) => setCountUp(id, value));
   setCountUp('#revenueInRange', data.revenueInRange, money);
   setCountUp('#revenueAllTime', data.totalRevenueAllTime, money);
   qs('#planBreakdown').innerHTML = (data.byPlan || []).length ? data.byPlan.map(plan => `<div class="plan-row"><span><b>${plan.planName || plan.planCode}</b><small>${plan.planCode}</small></span><span><b>${fmt(plan.activeSubscribers)}</b><small>${money(plan.totalRevenueAllTime)}</small></span></div>`).join('') : '<p class="section-note">No active plan data</p>';
-  qs('#autopayStatus').innerHTML = Object.entries(data.byAutopayStatus || {}).map(([status, count]) => `<span><i></i>${status}<b>${fmt(count)}</b></span>`).join('');
   const paidPlanTotal = (data.byPlan || []).filter(plan => String(plan.planCode).toUpperCase() !== 'TRIAL').reduce((total, plan) => total + (Number(plan.activeSubscribers) || 0), 0);
   const mismatch = paidPlanTotal !== Number(data.totalActiveSubscribers);
   qs('#subscriptionError').hidden = !mismatch;
@@ -619,6 +628,16 @@ function renderSubscriptions(data) {
     ? `Data quality warning: Active paid is ${fmt(data.totalActiveSubscribers)}, but non-trial plan entitlements total ${fmt(paidPlanTotal)}. Treat plan counts as entitlements until the backend definitions are reconciled.`
     : '';
   qs('#subscriptionScopeNote').textContent = `All-city metric. ${data.scopeNote || ''}`;
+}
+
+function renderPaymentStatus(data) {
+  setCountUp('#uniquePayers', data.customers);
+  setCountUp('#subscriptionsSold', data.successful);
+  const values = [
+    ['All', data.all], ['Successful', data.successful], ['Failed', data.failed],
+    ['Timed out', data.timedOut], ['Refunds', data.refunds], ['Customers', data.customers],
+  ];
+  qs('#paymentStatus').innerHTML = values.map(([label, value]) => `<span><i></i>${label}<b>${fmt(value)}</b></span>`).join('');
 }
 
 function renderContent(data) {
@@ -656,12 +675,13 @@ async function loadRoster() {
 }
 
 async function refreshAddendumData() {
-  const [overviewResult, trendResult, contentResult, activityResult, amplitudeResult] = await Promise.allSettled([
+  const [overviewResult, trendResult, contentResult, activityResult, amplitudeResult, paymentResult] = await Promise.allSettled([
     api('/subscriptions/overview', {}, { city: false }),
     api('/subscriptions/revenue-trend', { groupBy: state.groupBy }, { city: false }),
     api('/content/overview', {}, { city: false }),
     propertyActivityApi(),
-    amplitudeApi()
+    amplitudeApi(),
+    paymentSummaryApi()
   ]);
   if (overviewResult.status === 'fulfilled') {
     qs('#subscriptionError').hidden = true;
@@ -669,10 +689,14 @@ async function refreshAddendumData() {
   } else {
     ['#activeSubscribers','#activeIncludingTrial','#autopayOn','#autopayOff','#uniquePayers','#subscriptionsSold','#revenueInRange','#revenueAllTime','#newPurchases','#renewals'].forEach(id => qs(id).textContent = '—');
     qs('#planBreakdown').innerHTML = '';
-    qs('#autopayStatus').innerHTML = '';
     qs('#subscriptionScopeNote').textContent = '';
     qs('#subscriptionError').hidden = false;
     qs('#subscriptionError').textContent = `Subscription metrics unavailable: ${overviewResult.reason.message}`;
+  }
+  if (paymentResult.status === 'fulfilled') renderPaymentStatus(paymentResult.value);
+  else {
+    ['#uniquePayers', '#subscriptionsSold'].forEach(id => { qs(id).textContent = '—'; });
+    qs('#paymentStatus').innerHTML = '<span>Payment status unavailable</span>';
   }
   if (trendResult.status === 'fulfilled') renderRevenueChart(trendResult.value);
   else renderRevenueChart([]);
