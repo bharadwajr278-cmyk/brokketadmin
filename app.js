@@ -215,8 +215,7 @@ async function propertyActivityApi() {
 }
 
 async function paymentSummaryApi() {
-  const query = params({}, { city: false });
-  const response = await fetch(`/api/payments?${query}`, {
+  const response = await fetch('/api/payments', {
     signal: AbortSignal.timeout(25000), cache: 'no-store', credentials: 'same-origin'
   });
   const body = await response.json().catch(() => null);

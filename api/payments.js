@@ -33,7 +33,8 @@ module.exports = async function handler(request, response) {
 
   const fromDate = String(request.query.fromDate || '');
   const toDate = String(request.query.toDate || '');
-  if (!DATE_PATTERN.test(fromDate) || !DATE_PATTERN.test(toDate) || fromDate > toDate) {
+  const hasDates = Boolean(fromDate || toDate);
+  if (hasDates && (!DATE_PATTERN.test(fromDate) || !DATE_PATTERN.test(toDate) || fromDate > toDate)) {
     return response.status(400).json({ success: false, message: 'Invalid payment date range.' });
   }
 
