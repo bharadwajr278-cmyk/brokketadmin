@@ -8,7 +8,14 @@ function paymentUrl(path, fromDate, toDate) {
   if (!base) return null;
   const url = new URL(`/admin/api/v1/payments${path}`, base);
   if (fromDate) url.searchParams.set('from', fromDate);
-  if (toDate) url.searchParams.set('to', toDate);
+  if (toDate) {
+    // The payments service treats `to` as an exclusive midnight boundary.
+    // Advance it one day so the dashboard's inclusive end date includes all
+    // payments made during that date (especially today's transactions).
+    const exclusiveTo = new Date(`${toDate}T00:00:00Z`);
+    exclusiveTo.setUTCDate(exclusiveTo.getUTCDate() + 1);
+    url.searchParams.set('to', exclusiveTo.toISOString().slice(0, 10));
+  }
   return url;
 }
 
