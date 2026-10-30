@@ -1808,6 +1808,14 @@ main {
   font-size: 11px;
 }
 
+.successful-payment-panel {
+  margin-bottom: 18px;
+}
+
+.successful-payment-table .roster-row {
+  grid-template-columns: 1.55fr 1.2fr 0.8fr 0.75fr 1fr;
+}
+
 .roster-row > span b,
 .roster-row > span small {
   display: block;

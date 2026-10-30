@@ -214,6 +214,13 @@
               <div class="payment-status" id="paymentStatus"></div>
             </article>
           </div>
+          <article class="panel roster-panel successful-payment-panel">
+            <div class="panel-head"><div><h3>Successful subscription buyers</h3><p>People with a successful subscription payment in Brokket CRM</p></div><span class="metric-annotation"><b id="successfulPaymentCount">—</b> successful</span></div>
+            <div class="roster-table successful-payment-table" role="table" aria-label="Successful subscription buyers">
+              <div class="roster-row roster-head" role="row"><span>Customer</span><span>Plan</span><span>Billing</span><span>Amount</span><span>Paid on</span></div>
+              <div id="successfulPaymentRows"></div>
+            </div>
+          </article>
           <article class="panel roster-panel">
             <div class="panel-head"><div><h3>Active subscriber roster</h3><p>Who has which plan and whether autopay is active</p></div><label class="mini-filter"><span>Autopay</span><select id="autopayFilter"><option value="">Everyone</option><option value="on">On</option><option value="off">Off</option></select></label></div>
             <div class="roster-table" role="table" aria-label="Active subscriber roster">

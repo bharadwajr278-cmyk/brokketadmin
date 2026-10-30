@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizePaymentSummary, unwrapPayload } = require('../lib/payment-summary');
+const { normalizePaymentSummary, normalizeSuccessfulPayments, unwrapPayload } = require('../lib/payment-summary');
 
 test('normalizes the same payment counts shown by Brokket CRM', () => {
   const result = normalizePaymentSummary(
@@ -16,4 +16,17 @@ test('normalizes the same payment counts shown by Brokket CRM', () => {
 test('unwraps nested and string API payloads without inventing counts', () => {
   assert.deepEqual(unwrapPayload({ data: JSON.stringify({ data: { allCount: 3 } }) }), { allCount: 3 });
   assert.equal(normalizePaymentSummary({}, {}).successful, 0);
+});
+
+test('normalizes successful subscription people and masks phone numbers', () => {
+  const result = normalizeSuccessfulPayments({ data: {
+    totalElements: 1,
+    content: [{ fullName: 'Test Person', phone: '9873299312', planName: 'Pro', planCode: 'GOLD', billingType: 'Monthly', amount: 399, occurredAt: '2026-10-29T20:15:00' }],
+  } });
+  assert.equal(result.total, 1);
+  assert.deepEqual(result.content[0], {
+    fullName: 'Test Person', phoneLast4: '9312', planName: 'Pro', planCode: 'GOLD',
+    billingType: 'Monthly', amount: 399, occurredAt: '2026-10-29T20:15:00', renewal: false,
+  });
+  assert.doesNotMatch(JSON.stringify(result), /9873299312/);
 });

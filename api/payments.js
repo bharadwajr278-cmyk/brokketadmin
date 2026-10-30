@@ -1,5 +1,5 @@
 const { getSession } = require('../lib/auth');
-const { normalizePaymentSummary, unwrapPayload } = require('../lib/payment-summary');
+const { normalizePaymentSummary, normalizeSuccessfulPayments, unwrapPayload } = require('../lib/payment-summary');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -64,11 +64,18 @@ module.exports = async function handler(request, response) {
   }
 
   try {
-    const [summary, tabs] = await Promise.all([
+    const [summary, tabs, successfulTransactions] = await Promise.all([
       fetchPaymentData('/summary'),
       fetchPaymentData('/transactions/tabs'),
+      fetchPaymentData('/transactions?tab=SUCCESSFUL&purchaseOrderType=SUBSCRIPTION&page=0&size=100'),
     ]);
-    return response.status(200).json({ success: true, data: normalizePaymentSummary(summary, tabs) });
+    return response.status(200).json({
+      success: true,
+      data: {
+        ...normalizePaymentSummary(summary, tabs),
+        successfulSubscriptions: normalizeSuccessfulPayments(successfulTransactions),
+      },
+    });
   } catch (error) {
     console.error('Payment summary request failed:', error.message);
     return response.status(error.status || 502).json({ success: false, message: error.message || 'Payment service is unavailable.' });

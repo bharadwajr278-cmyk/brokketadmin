@@ -637,6 +637,9 @@ function renderPaymentStatus(data) {
     ['Timed out', data.timedOut], ['Refunds', data.refunds], ['Customers', data.customers],
   ];
   qs('#paymentStatus').innerHTML = values.map(([label, value]) => `<span><i></i>${label}<b>${fmt(value)}</b></span>`).join('');
+  const payments = data.successfulSubscriptions || { total: 0, content: [] };
+  qs('#successfulPaymentCount').textContent = fmt(payments.total);
+  qs('#successfulPaymentRows').innerHTML = payments.content.length ? payments.content.map(item => `<div class="roster-row" role="row"><span><b>${escapeHtml(item.fullName)}</b><small>${item.phoneLast4 ? `•••• ${escapeHtml(item.phoneLast4)}` : 'phone unavailable'}</small></span><span><b>${escapeHtml(item.planName)}</b><small>${escapeHtml(item.planCode)}</small></span><span>${escapeHtml(item.billingType)}${item.renewal ? '<small>Renewal</small>' : ''}</span><span><b>${money(item.amount)}</b></span><span>${formatDate(item.occurredAt)}</span></div>`).join('') : '<div class="roster-empty">No successful subscription payments found.</div>';
 }
 
 function renderContent(data) {
@@ -696,6 +699,8 @@ async function refreshAddendumData() {
   else {
     ['#uniquePayers', '#subscriptionsSold'].forEach(id => { qs(id).textContent = '—'; });
     qs('#paymentStatus').innerHTML = '<span>Payment status unavailable</span>';
+    qs('#successfulPaymentCount').textContent = '—';
+    qs('#successfulPaymentRows').innerHTML = '<div class="roster-empty">Successful subscription buyers unavailable.</div>';
   }
   if (trendResult.status === 'fulfilled') renderRevenueChart(trendResult.value);
   else renderRevenueChart([]);
