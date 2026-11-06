@@ -105,7 +105,7 @@
 
         <section id="overview" class="metric-grid" aria-label="Headline metrics">
           <article class="metric-card featured"><div class="metric-icon">◎</div><div class="metric-label">Total users</div><div class="metric-value" id="totalUsers">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
-          <article class="metric-card"><div class="metric-icon">+</div><div class="metric-label">New users</div><div class="metric-value" id="newUsers">—</div><div class="metric-foot"><span>Live metric</span><span>in range</span></div></article>
+          <article class="metric-card"><div class="metric-icon">+</div><div class="metric-label">New registered users</div><div class="metric-value" id="newUsers">—</div><div class="metric-foot"><span>Mini CRM joined members</span><span>in range</span></div></article>
           <article class="metric-card"><div class="metric-icon">◉</div><div class="metric-label">Users who logged in</div><div class="metric-value" id="activeUsers">—</div><div class="metric-foot"><span>Unique successful logins</span><span>in range</span></div></article>
           <article class="metric-card"><div class="metric-icon">⌂</div><div class="metric-label">Active listings</div><div class="metric-value" id="activeListings">—</div><div class="metric-foot"><span>Live metric</span><span>all time</span></div></article>
           <article class="metric-card"><div class="metric-icon">▤</div><div class="metric-label">New listings</div><div class="metric-value" id="newListings">—</div><div class="metric-foot"><span>Live metric</span><span>this period</span></div></article>
@@ -113,14 +113,14 @@
         </section>
 
         <section id="growth" class="section-block">
-          <div class="section-heading"><div><p class="eyebrow">01 · GROWTH & RETENTION</p><h2>Audience momentum</h2></div><div class="legend"><span><i class="lime"></i> Registrations <b id="registrationCount">—</b></span><span><i class="blue"></i> Logins <b id="loginCount">—</b></span></div></div>
+          <div class="section-heading"><div><p class="eyebrow">01 · GROWTH & RETENTION</p><h2>Audience momentum</h2></div><div class="legend"><span><i class="lime"></i> Registered users <b id="registrationCount">—</b></span><span><i class="blue"></i> Daily unique logins <b id="loginCount">—</b></span></div></div>
           <div class="growth-layout">
             <article class="panel chart-panel">
-              <div class="panel-head"><div><h3>Acquisition vs. engagement</h3><p id="growthChartSubtitle">Daily registrations and successful logins</p></div><div class="segmented" role="group" aria-label="Chart grouping"><button class="active" data-group="day">Day</button><button data-group="month">Month</button></div></div>
+              <div class="panel-head"><div><h3>Acquisition vs. engagement</h3><p id="growthChartSubtitle">Daily registered users and daily unique successful logins</p></div><div class="segmented" role="group" aria-label="Chart grouping"><button class="active" data-group="day">Day</button><button data-group="month">Month</button></div></div>
               <div class="chart-wrap"><svg id="trendChart" viewBox="0 0 760 260" role="img" aria-label="Registrations and logins trend"></svg></div>
             </article>
             <div class="score-stack">
-              <article class="score-card dark"><div><p class="eyebrow">USER GROWTH</p><strong id="growthRate">—</strong><p>Net growth this period</p></div><svg class="mini-ring" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30"/><circle class="ring-progress" cx="40" cy="40" r="30" stroke-dasharray="128 188"/></svg></article>
+              <article class="score-card dark"><div><p class="eyebrow">REGISTRATION TREND</p><strong id="growthRate">—</strong><p>First-to-last period change</p></div><svg class="mini-ring" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30"/><circle class="ring-progress" cx="40" cy="40" r="30" stroke-dasharray="128 188"/></svg></article>
               <article class="score-card"><div><p class="eyebrow">LOGIN SUCCESS</p><strong id="successRate">—</strong><p><span id="uniqueUsers">—</span> unique users logged in</p></div><div class="gauge"><span style="--score:0"></span></div></article>
             </div>
           </div>

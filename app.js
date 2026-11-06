@@ -214,6 +214,17 @@ async function propertyActivityApi() {
   return body.data;
 }
 
+async function memberSummaryApi() {
+  const query = params({ groupBy: state.groupBy });
+  const response = await fetch(`/api/members?${query}`, {
+    signal: AbortSignal.timeout(60000), cache: 'no-store', credentials: 'same-origin'
+  });
+  const body = await response.json().catch(() => null);
+  if (response.status === 401) lockDashboard(body?.message || 'Your session expired. Please sign in again.');
+  if (!response.ok || !body?.success) throw new Error(body?.message || `CRM member request failed (${response.status})`);
+  return body.data;
+}
+
 async function paymentSummaryApi() {
   const response = await fetch('/api/payments', {
     signal: AbortSignal.timeout(25000), cache: 'no-store', credentials: 'same-origin'
@@ -807,11 +818,11 @@ function render() {
   renderCities(d.cities);
 }
 
-function renderReconciliationAudit({ overview, userOverview, loginOverview, registrationTrend, loginTrend, listingOverview, listingTrend, likeOverview, likeTrend }) {
+function renderReconciliationAudit({ overview, memberSummary, loginOverview, registrationTrend, loginTrend, listingOverview, listingTrend, likeOverview, likeTrend }) {
   const sum = rows => (rows || []).reduce((total, row) => total + (Number(row.count) || 0), 0);
   const issues = [];
-  if (Number(overview.newUsersInRange) !== Number(userOverview.newUsersInRange)) issues.push('overview and user registration totals differ');
-  if (Number(overview.newUsersInRange) !== sum(registrationTrend)) issues.push('registration headline and graph differ');
+  if (Number(memberSummary.filteredMembers) !== sum(registrationTrend)) issues.push('CRM registered-user headline and graph differ');
+  if (!memberSummary.trendComplete) issues.push('CRM registration trend is incomplete');
   if (Number(loginOverview.successfulLogins) !== sum(loginTrend)) issues.push('successful-login headline and graph differ');
   if (!qs('#typeSelect').value && Number(listingOverview.newListingsInRange) !== sum(listingTrend)) issues.push('listing headline and graph differ');
   if (Number(likeOverview.totalLikesInRange) !== sum(likeTrend)) issues.push('likes headline and graph differ');
@@ -840,9 +851,11 @@ async function refresh() {
   btn.classList.add('loading');
   qs('#dataMode').textContent='LOADING';
   try {
-    const [overview,userOverview,reg,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities,saleListings,rentListings,mandateListings,requirementListings] = await Promise.all([
-      api('/overview'),api('/users/overview'),api('/users/registrations-trend',{groupBy:state.groupBy}),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city'),api('/listings/overview',{transactionType:'Sale'}),api('/listings/overview',{transactionType:'Rent'}),api('/listings/overview',{transactionType:'Mandate'}),api('/listings/overview',{transactionType:'Requirement'})
+    const [rawOverview,memberSummary,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities,saleListings,rentListings,mandateListings,requirementListings] = await Promise.all([
+      api('/overview'),memberSummaryApi(),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city'),api('/listings/overview',{transactionType:'Sale'}),api('/listings/overview',{transactionType:'Rent'}),api('/listings/overview',{transactionType:'Mandate'}),api('/listings/overview',{transactionType:'Requirement'})
     ]);
+    const overview={...rawOverview,totalUsers:Number(memberSummary.totalMembers)||Number(rawOverview.totalUsers)||0,newUsersInRange:Number(memberSummary.filteredMembers)||0};
+    const reg=memberSummary.trend||[];
     const usersByCity=groupCityRows(userCities), loginsByCity=groupCityRows(loginCities), listingsByCity=groupCityRows(listingCities), likesByCity=groupCityRows(likeCities);
     const uc=usersByCity.grouped, lc=loginsByCity.grouped, sc=listingsByCity.grouped, kc=likesByCity.grouped;
     const codes=[...new Set([...Object.keys(uc),...Object.keys(lc),...Object.keys(sc),...Object.keys(kc)])];
@@ -857,15 +870,16 @@ async function refresh() {
     const cityTotals={users:userCities.reduce((t,x)=>t+(Number(x.count)||0),0),logins:loginCities.reduce((t,x)=>t+(Number(x.count)||0),0),listings:listingCities.reduce((t,x)=>t+(Number(x.count)||0),0),likes:likeCities.reduce((t,x)=>t+(Number(x.count)||0),0)};
     const trackedListingsInRange = reliableMix.Mandate + reliableMix.Requirement;
     state.data={overview,uniqueActiveUsers:loginOverview.uniqueActiveUsers,registrations:reg,logins,likes,listings,listingOverview,trackedListingsInRange,trackedLikesInRange:Number(likeOverview.totalLikesInRange)||0,likesScopeNote:likeOverview.scopeNote||'Covers date-ranged likes on Mandate and Requirement listings only.',contributors,cities:cityRows,cityTotals,excludedCities:{users:usersByCity.excluded,logins:loginsByCity.excluded,listings:listingsByCity.excluded,likes:likesByCity.excluded}};
-    renderReconciliationAudit({ overview, userOverview, loginOverview, registrationTrend: reg, loginTrend: logins, listingOverview, listingTrend: listings, likeOverview, likeTrend: likes });
-    const growthRate=userOverview.growthRatePercent, successRate=loginOverview.successRatePercent;
+    renderReconciliationAudit({ overview, memberSummary, loginOverview, registrationTrend: reg, loginTrend: logins, listingOverview, listingTrend: listings, likeOverview, likeTrend: likes });
+    const firstRegistration=Number(reg[0]?.count)||0, lastRegistration=Number(reg.at(-1)?.count)||0;
+    const growthRate=firstRegistration ? (lastRegistration-firstRegistration)/firstRegistration*100 : (lastRegistration ? 100 : null), successRate=loginOverview.successRatePercent;
     if (growthRate == null) qs('#growthRate').textContent = 'N/A';
     else setCountUp('#growthRate', growthRate, value => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`);
     if (successRate == null) qs('#successRate').textContent = 'N/A';
     else setCountUp('#successRate', successRate, value => `${value.toFixed(1)}%`);
     render();
     state.live=true;
-    qs('#executiveInsight').textContent=`${fmt(overview.newUsersInRange)} new users and ${fmt(overview.newListingsInRange)} new listings in the selected period.`;
+    qs('#executiveInsight').textContent=`${fmt(overview.newUsersInRange)} registered users and ${fmt(overview.newListingsInRange)} new listings in the selected period.`;
     qs('#dataMode').textContent='TEST API';
     qs('#serviceState').textContent='Test API · auto-refresh 5m';
     qs('.status-dot').style.background='#9de36d';
