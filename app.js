@@ -432,7 +432,7 @@ function chart(svgId, aRows = [], bRows = null, compact = false) {
     return `<g><circle class="chart-point ${series}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"><title>${bucketLabel(domain[i])} · ${name}: ${fmt(vals[i])}</title></circle>${showCounts ? `<text class="chart-value ${series}" text-anchor="middle" x="${x.toFixed(1)}" y="${labelY.toFixed(1)}">${fmt(vals[i])}</text>` : ''}</g>`;
   }).join('');
   const areaMarkup = a.length > 1 ? `<path class="${b?'area-a':'area-like'}" d="${area(a)}"/>` : '';
-  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}${areaMarkup}<path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${points(a,b?'registration':'like',b?'Registrations':'Likes',-10)}${b?`<path class="line-b" d="${path(b)}"/>${points(b,'login','Logins',16)}`:''}${labels}`;
+  svg.innerHTML = `<defs><linearGradient id="limeFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8df2d" stop-opacity=".18"/><stop offset="1" stop-color="#a8df2d" stop-opacity="0"/></linearGradient><linearGradient id="violetFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b87ff" stop-opacity=".22"/><stop offset="1" stop-color="#9b87ff" stop-opacity="0"/></linearGradient></defs>${grids}${areaMarkup}<path class="${b?'line-a':'line-like'}" d="${path(a)}"/>${points(a,b?'registration':'like',b?'Registered users':'Likes',-10)}${b?`<path class="line-b" d="${path(b)}"/>${points(b,'login','Daily unique logins',16)}`:''}${labels}`;
 }
 
 function renderRevenueChart(points = []) {
@@ -811,7 +811,7 @@ function render() {
   else qs('#likesPerListing').textContent = 'N/A';
   qs('#likesScopeNote').textContent = d.likesScopeNote;
   const periodWord = state.groupBy === 'month' ? 'Monthly' : 'Daily';
-  qs('#growthChartSubtitle').textContent = `${periodWord} registrations and successful logins`;
+  qs('#growthChartSubtitle').textContent = `${periodWord} registered users and ${periodWord.toLowerCase()} unique successful logins`;
   qs('#listingChartSubtitle').textContent = `New listings by ${state.groupBy === 'month' ? 'month' : 'day'}`;
   qs('#likesChartSubtitle').textContent = `${periodWord} date-ranged likes`;
   renderContributors(d.contributors);
