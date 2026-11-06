@@ -851,6 +851,12 @@ async function refresh() {
   btn.classList.add('loading');
   qs('#dataMode').textContent='LOADING';
   try {
+    const range=dateRange();
+    const rangeDays=Math.floor((Date.parse(`${range.toDate}T00:00:00Z`)-Date.parse(`${range.fromDate}T00:00:00Z`))/86400000)+1;
+    if (rangeDays > 100 && state.groupBy === 'day') {
+      state.groupBy='month';
+      document.querySelectorAll('.segmented button').forEach(button=>button.classList.toggle('active',button.dataset.group==='month'));
+    }
     const [rawOverview,memberSummary,loginOverview,logins,listingOverview,listings,contributors,likeOverview,likes,userCities,loginCities,listingCities,likeCities,saleListings,rentListings,mandateListings,requirementListings] = await Promise.all([
       api('/overview'),memberSummaryApi(),api('/logins/overview'),api('/logins/trend',{groupBy:state.groupBy}),api('/listings/overview'),api('/listings/trend',{groupBy:state.groupBy,transactionType:qs('#typeSelect').value}),api('/listings/top-contributors',{limit:5}),api('/likes/overview'),api('/likes/trend',{groupBy:state.groupBy}),api('/users/by-city'),api('/logins/by-city'),api('/listings/by-city'),api('/likes/by-city'),api('/listings/overview',{transactionType:'Sale'}),api('/listings/overview',{transactionType:'Rent'}),api('/listings/overview',{transactionType:'Mandate'}),api('/listings/overview',{transactionType:'Requirement'})
     ]);

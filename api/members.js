@@ -1,12 +1,11 @@
 const { getSession } = require('../lib/auth');
-const { buildRegistrationTrend, normalizeMemberSummary } = require('../lib/member-summary');
+const { normalizeMemberSummary, registrationPeriods } = require('../lib/member-summary');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-const PAGE_SIZE = 1000;
-const MAX_PAGES = 50;
+const MAX_TREND_POINTS = 100;
 
-function membersUrl(fromDate, toDate, page = 0, cityCode = '') {
+function membersUrl(fromDate, toDate, cityCode = '') {
   const base = process.env.BROKKET_API_BASE_URL;
   if (!base) return null;
   const url = new URL('/admin/companies/all/members', base);
@@ -14,8 +13,8 @@ function membersUrl(fromDate, toDate, page = 0, cityCode = '') {
   url.searchParams.set('fromDate', `${fromDate}T00:00:00`);
   url.searchParams.set('toDate', `${toDate}T23:59:59`);
   url.searchParams.set('filterType', 'JOINED');
-  url.searchParams.set('page', String(page));
-  url.searchParams.set('size', String(PAGE_SIZE));
+  url.searchParams.set('page', '0');
+  url.searchParams.set('size', '1');
   url.searchParams.set('registrationFilter', 'ALL');
   url.searchParams.set('onboardingCityCode', cityCode);
   return url;
@@ -54,7 +53,7 @@ module.exports = async function handler(request, response) {
       !['day', 'month'].includes(groupBy) || (cityCode && !/^[a-z0-9_-]{1,80}$/i.test(cityCode))) {
     return response.status(400).json({ success: false, message: 'Invalid member date range.' });
   }
-  if (!membersUrl(fromDate, toDate, 0, cityCode)) return response.status(500).json({ success: false, message: 'Member API is not configured.' });
+  if (!membersUrl(fromDate, toDate, cityCode)) return response.status(500).json({ success: false, message: 'Member API is not configured.' });
 
   try {
     const headers = {
@@ -64,8 +63,8 @@ module.exports = async function handler(request, response) {
         USER_ID: session.userId,
         Cookie: `JSESSIONID=${session.backendSessionId}`,
     };
-    async function fetchPage(page) {
-      const upstream = await fetch(membersUrl(fromDate, toDate, page, cityCode), {
+    async function fetchSummary(rangeFrom, rangeTo) {
+      const upstream = await fetch(membersUrl(rangeFrom, rangeTo, cityCode), {
         headers, cache: 'no-store', signal: AbortSignal.timeout(20000),
       });
       const payload = await upstream.json().catch(() => null);
@@ -76,22 +75,27 @@ module.exports = async function handler(request, response) {
       }
       return normalizeMemberSummary(payload);
     }
-    const first = await fetchPage(0);
-    if (first.totalPages > MAX_PAGES) throw new Error('CRM member result is too large to reconcile safely. Narrow the date range.');
-    const remaining = await runLimited(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, index) => index + 1), 4, fetchPage);
-    const members = [first, ...remaining].flatMap(page => page.members);
-    const { trend, unbucketed } = buildRegistrationTrend(members, fromDate, toDate, groupBy);
+    const periods = registrationPeriods(fromDate, toDate, groupBy);
+    if (periods.length > MAX_TREND_POINTS) throw Object.assign(new Error('Select Month view for date ranges longer than 100 days.'), { status: 400 });
+    const [summary, points] = await Promise.all([
+      fetchSummary(fromDate, toDate),
+      runLimited(periods, 6, async period => {
+        const point = await fetchSummary(period.fromDate, period.toDate);
+        return { label: period.label, count: point.filteredMembers };
+      }),
+    ]);
+    const trend = points;
     const trendTotal = trend.reduce((total, point) => total + point.count, 0);
     return response.status(200).json({
       success: true,
       data: {
-        totalMembers: first.totalMembers,
-        filteredMembers: first.filteredMembers,
-        filteredProperties: first.filteredProperties,
+        totalMembers: summary.totalMembers,
+        filteredMembers: summary.filteredMembers,
+        filteredProperties: summary.filteredProperties,
         trend,
         trendTotal,
-        unbucketedMembers: unbucketed,
-        trendComplete: trendTotal === first.filteredMembers && unbucketed === 0 && members.length === first.filteredMembers,
+        unbucketedMembers: 0,
+        trendComplete: trendTotal === summary.filteredMembers,
         source: 'Brokket Mini CRM · Joined members',
       },
     });

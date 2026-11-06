@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildRegistrationTrend, normalizeMemberSummary } = require('../lib/member-summary');
+const { buildRegistrationTrend, normalizeMemberSummary, registrationPeriods } = require('../lib/member-summary');
 
 test('normalizes the Mini CRM filtered member count', () => {
   const result = normalizeMemberSummary({
@@ -50,4 +50,11 @@ test('groups CRM registration records by month without estimating missing dates'
     { label: '2026-11', count: 1 },
   ]);
   assert.equal(result.unbucketed, 1);
+});
+
+test('clips monthly CRM queries to the selected date range', () => {
+  assert.deepEqual(registrationPeriods('2026-10-15', '2026-11-06', 'month'), [
+    { label: '2026-10', fromDate: '2026-10-15', toDate: '2026-10-31' },
+    { label: '2026-11', fromDate: '2026-11-01', toDate: '2026-11-06' },
+  ]);
 });
